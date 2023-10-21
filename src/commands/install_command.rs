@@ -4,16 +4,20 @@ use duct::cmd;
 use crate::query_manager::{Package, PackageSelector};
 use crate::commands::*;
 
+pub static mut DO_SYNC_REPOS: bool = false;
+
 impl InstallCommand {
     pub fn new(initial_state: StyxState) -> InstallCommand {
-        return InstallCommand {
-            assume_yes: false,
-            do_sync_repos: false,
-            xbps_args: Vec::new(),
-            pkgs: Vec::new(),
-            current_state: initial_state,
-            do_validate_pkgs: true,
-        };
+        unsafe {
+            return InstallCommand {
+                assume_yes: false,
+                do_sync_repos: DO_SYNC_REPOS,
+                xbps_args: Vec::new(),
+                pkgs: Vec::new(),
+                current_state: initial_state,
+                do_validate_pkgs: true,
+            };
+        }
     }
     pub fn add_pkg(&mut self, pkg: Package) {
         self.pkgs.push(pkg);
@@ -107,7 +111,6 @@ impl InstallCommand {
 
             // Failed for other reasons
             self.current_state = StyxState::Failed;
-            println!("Her");
             return Err(msg);
         }
 

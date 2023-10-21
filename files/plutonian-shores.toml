@@ -1,2 +1,10 @@
 [styx]
+# Add a '-S' arg to xbps-install 
+do_sync = true
 
+[cocytus]
+# Score from 0.0 - 1.0. 
+# Used to restrict number of query results, where 0.0=only exact matches & 1.0=no restriction
+fuzzy_find_threshold = 0.3
+# Max number of query results to display in a column
+list_column_length = 20

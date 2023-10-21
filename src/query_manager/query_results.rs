@@ -6,9 +6,8 @@ use crate::query_manager::*;
 use std::process::{Command, Stdio};
 use rust_fuzzy_search::fuzzy_compare;
 
-const THRESHOLD: f32 = 0.3;
-const LIST_COLUMN_LEN: usize = 20;
-
+pub static mut THRESHOLD: f32 = 0.3;
+pub static mut LIST_COLUMN_LEN: usize = 20;
 impl QueryResults {
     /**
      * Uses fuzzy search to match packages in void repo to {search_term}
@@ -129,7 +128,10 @@ impl QueryResults {
     }
     pub fn to_menu(&self) -> String {
         let mut output: String = String::new();
-        let col_count = self.len() / LIST_COLUMN_LEN;
+        let col_count: usize;
+        unsafe {
+            col_count = self.len() / LIST_COLUMN_LEN;
+        }
 
         for (i, item) in self.0.iter().enumerate() {
             output += &format!("{}. {}", i + 1, item.pkg_name);
@@ -170,8 +172,10 @@ fn search_repo(search_term: &Package) -> Result<Vec<u8>, String> {
  */
 fn score_result(search_term: &Package, name: &Package) -> Option<i32> {
     let score = fuzzy_compare(&search_term, &name);
-    if score >= THRESHOLD {
-        return Some((score * 100.0) as i32);
+    unsafe {
+        if score >= THRESHOLD {
+            return Some((score * 100.0) as i32);
+        }
     }
     return None;
 }
