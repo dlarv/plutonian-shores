@@ -1,27 +1,8 @@
-use std::{io::{stdout, Write, stdin, BufReader, BufRead}, process::{Command, Stdio, Output}, fmt::format};
+use std::{io::{stdout, Write, stdin, BufReader, BufRead}, process::{Command, Stdio}};
 use duct::cmd;
 
 use crate::query_manager::{Package, PackageSelector};
-
-#[derive(Debug, Clone)]
-pub enum StyxState { 
-    Completed, 
-    Failed,
-    BadPkg(String),
-    DoInstall,
-    DoSysUpdate,
-    DoXbpsUpdate,
-}
-
-#[derive(Debug)]
-pub struct InstallCommand {
-    assume_yes: bool,
-    do_sync_repos: bool,
-	xbps_args: Vec<String>,
-	pkgs: Vec<Package>,
-	current_state: StyxState,
-    do_validate_pkgs: bool,
-} 
+use crate::commands::*;
 
 impl InstallCommand {
     pub fn new(initial_state: StyxState) -> InstallCommand {
@@ -281,6 +262,7 @@ impl InstallCommand {
         }
     }
 }
+
 fn parse_output(output: Vec<u8>) -> String {
     return output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
 }

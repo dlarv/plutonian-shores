@@ -1,25 +1,6 @@
-/*
- * Styx: xbps-install wrapper
- * Shares args with cmd
- *
- * styx -U
- *
- * If user tries to install a pkg which cannot be found
- * 1. Run query command
- * 2. Display results to user
- * 3. Allow user to select one or none of results 
- *
- * If user tries to update system & xbps must be updated first
- * Ask user if they want to do so (Y/n)
- * If user passed -y | --assume-yes, do so automatically
- * 
- * NOTE: xbps-install confirmation message (... (Y/n)) is sent via stderr 
- * styx will do a dry-run where it captures stderr/etc
- * If stderr is fine, do actual install
- */
 pub mod query_manager;
 pub mod commands;
-use crate::commands::install_command::{ InstallCommand, StyxState };
+use crate::commands::*;
 
 fn main() {
     let mut cmd = match parse_args() {
