@@ -7,8 +7,12 @@ edition = "2021"
 
 [dependencies]
 clap = "4.4.6"
+derive = "1.0.0"
+duct = "0.13.6"
 mythos-core = { version = "0.1.0", path = "../mythos-core" }
 rust-fuzzy-search = "0.1.1"
+serde = "1.0.189"
+serde_derive = "1.0.189"
 
 [[bin]]
 name = "styx"

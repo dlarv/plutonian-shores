@@ -1,297 +1,270 @@
-use std::{io::{stdout, Write, stdin}, process::{Command, Stdio}};
+use std::{io::{stdout, Write, stdin, BufReader, BufRead}, process::{Command, Stdio, Output}, fmt::format};
+use duct::cmd;
+
 use crate::query_manager::{Package, PackageSelector};
 
 #[derive(Debug, Clone)]
-pub enum States { 
+pub enum StyxState { 
     Completed, 
-    NeedsXbpsUpdate, 
-    NeedsSysUpdate, 
+    Failed,
+    BadPkg(String),
     DoInstall,
     DoSysUpdate,
     DoXbpsUpdate,
-    BadPkg(String) 
 }
 
 #[derive(Debug)]
 pub struct InstallCommand {
-    pub assume_yes: bool,
-	pub do_system_update: bool,
-	pub xbps_args: Vec<String>,
-	pub pkgs: Vec<Package>,
-	pub current_state: States,
-    pub do_validate_pkgs: bool,
+    assume_yes: bool,
+    do_sync_repos: bool,
+	xbps_args: Vec<String>,
+	pkgs: Vec<Package>,
+	current_state: StyxState,
+    do_validate_pkgs: bool,
 } 
 
 impl InstallCommand {
-    pub fn new(initial_state: States) -> InstallCommand {
-        let do_system_update: bool = matches!(initial_state, States::DoSysUpdate) 
-            || matches!(initial_state, States::DoXbpsUpdate);
-
-        return InstallCommand { 
+    pub fn new(initial_state: StyxState) -> InstallCommand {
+        return InstallCommand {
             assume_yes: false,
-            do_system_update, 
-            xbps_args: Vec::new(), 
-            pkgs: Vec::new(), 
+            do_sync_repos: false,
+            xbps_args: Vec::new(),
+            pkgs: Vec::new(),
             current_state: initial_state,
-            do_validate_pkgs: true
+            do_validate_pkgs: true,
+        };
+    }
+    pub fn add_pkg(&mut self, pkg: Package) {
+        self.pkgs.push(pkg);
+    }
+    pub fn add_xbps_arg(&mut self, arg: String) {
+        self.xbps_args.push(arg);
+    }
+    pub fn set_assume_yes(&mut self, val: bool) {
+        self.assume_yes = val;
+    }
+    pub fn set_initial_state(&mut self, state: StyxState) {
+        self.current_state = state;
+    }
+    pub fn is_completed(&self) -> bool {
+        return matches!(self.current_state, StyxState::Failed) 
+            || matches!(self.current_state, StyxState::Completed);
+    }
+
+    /*
+     * Announce/print next step --> get_user_permission
+     * Get user permission to proceed --> get_user_permission
+     * try execute next step --> try_execute_*
+     * print results --> execute
+     * update state --> try_execute_*
+     */
+    pub fn execute(&mut self) {
+        let res = match &self.current_state.clone() {
+            StyxState::DoXbpsUpdate => self.try_execute_xbps_update(),
+            StyxState::DoSysUpdate => self.try_execute_sys_update(),
+            StyxState::BadPkg(pkg) => self.fix_bad_pkg(&pkg),
+            StyxState::DoInstall => self.try_execute_install(),
+            _ => return
+        };
+
+        match res {
+            Ok(msg) => println!("STYX: {}", msg),
+            Err(msg) => {
+                if matches!(self.current_state, StyxState::Failed) {
+                    eprintln!("STYX (FATAL ERROR): {}", msg);
+                    return;
+                }
+                eprintln!("STYX (ERROR): {}", msg);
+            }
         };
     }
 
-    pub fn xbps_args<I>(&mut self, args: I) where I: Iterator<Item = String> {
-        self.xbps_args.extend(args);
-    }
+    // Leads to DoInstall, BadPkg, Failed
+    fn validate_pkgs(&mut self) -> Result<(), String> {
+        // Method only needs to be ran once
+        if !self.do_validate_pkgs {
+            return Ok(());
+        }
 
-    pub fn try_run(&mut self) -> Result<String, String>{
-        /*!
-         * Attempts to run xbps-install to install pkgs and/or update system.
-         * Cmd can run into 3 errors:
-         * - System needs updating 
-         * - xbps needs updating
-         * - pkg does not exist
-         *
-         * If command fails, caller will have the option to cancel command or fix.
-         */
-        match self.current_state {
-            States::DoXbpsUpdate => {
-                match self.update_xbps() {
-                    Ok(_) => {
-                        self.current_state = States::DoSysUpdate;
-                        return Ok("STYX (Success): Updated the 'xbps' package".into());
-                    },
-                    Err(_) => {
-                        self.current_state = States::Completed;
-                        return Err("STYX (Fatal Error): Could not update the 'xbps' package.".into());
-                    },
-                };
-            },
-            States::DoSysUpdate => {
-                match self.update_sys() {
-                    Ok(_) => {
-                        self.current_state = if self.pkgs.len() > 0 {
-                            States::DoInstall
-                        } else { States::Completed };
-                        return Ok("STYX (Success): Updated system.".into());
-                    },
-                    Err((needs_xbps_update, msg)) => {
-                        if needs_xbps_update { 
-                            self.current_state = States::NeedsXbpsUpdate;
-                            return Err(format!("STYX (Error): Xbps needs to be updated."));
-                        } else {
-                            self.current_state = States::Completed;
-                            return Err(format!("STYX (Fatal Error): Could not update system.\n {}", msg)); 
-                        } 
-                    }
-                };
-            },
-            States::DoInstall => {
-                if let Err(bad_pkg) = self.validate_pkgs() {
-                    if bad_pkg.len() == 0 {
-                        self.current_state = States::DoSysUpdate;
-                        return Err(format!("STYX (Error): System needs to be updated."));
-                    }
-                    let msg = format!("STYX (Error): Could not find package '{}', must be replaced.", bad_pkg);
-                    self.current_state = States::BadPkg(bad_pkg);
-                    return Err(msg);
+        // self.pkgs must be mutated outside of loop
+        let mut counter: isize = -1;
+        for pkg in self.pkgs.iter() {
+            counter += 1;
+
+            let mut cmd = Command::new("xbps-install");
+            cmd.args(["-n", &pkg])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+
+            let msg = match cmd.output() {
+                Ok(res) => parse_output(res.stderr),
+                Err(msg) =>  {
+                    self.current_state = StyxState::Failed;
+                    return Err(msg.to_string());
                 }
-                if let Err(msg) = self.install_pkgs() {
-                    self.current_state = States::Completed;
-                    return Err(format!("STYX (Fatal Error): Could not run install command.\n{}", msg));
-                }
-                self.current_state = States::Completed;
-                return Ok("STYX (Success): Installation complete!".into());
-            },
-            _ => panic!("STYX (Fatal Error): try_run should only be called if the command state == DoXbpsUpdate || DoSysUpdate || DoInstall. State is = {:?}", self.current_state),
-        };
-    }
+            };
 
-    pub fn apply_fix(&mut self) -> String {
-        let mut msg: String = "".into();
-        self.current_state = match self.current_state.clone() {
-            States::NeedsSysUpdate =>  States::DoSysUpdate,
-            States::NeedsXbpsUpdate => States::DoXbpsUpdate,
-            States::BadPkg(pkg) => {
-                let new_pkg = self.replace_pkg(&pkg);
-                if new_pkg.len() == 0 {
-                    msg = format!("STYX: Removed '{}'", pkg);
-                }
-                else {
-                    msg = format!("STYX: Replaced '{}' with '{}'", pkg, new_pkg);
-                    self.pkgs.push(new_pkg);
-                }
-
-                States::DoInstall
-            },
-            _ => panic!("STYX (Fatal Error): apply_fix should only be called if the command state == NeedsSysUpdate || NeedsXbpsUpdate || BadPkg. State is = {:?}", self.current_state),
-        };
-
-        return msg.into();
-    }
-
-    pub fn try_apply_fix(&mut self) -> Result<String, String> {
-        /*!
-         * Ask user for permission to apply fix 
-        */
-        loop {
-            print!("Would you like to do this now? Y/n: ");
-            if self.assume_yes {
-                print!("y\n");
-                return Ok(self.apply_fix());
+            // PKG did not fail
+            if msg.len() == 0 {
+                continue;
             }
 
+            // Failed bc pkg dne
+            if msg.starts_with("Package '") && msg.ends_with("' not found in repository pool.") {
+                self.current_state = StyxState::BadPkg(pkg.to_owned());
+                break;
+            }
+            // Failed for other reasons
+            self.current_state = StyxState::Failed;
+            return Err(msg);
+        }
+
+        if !matches!(self.current_state, StyxState::DoInstall) {
+            let pkg = self.pkgs.remove(counter as usize);
+            return Err(format!("Package not found: '{}'", pkg));
+        }
+        self.do_validate_pkgs = false;
+        return Ok(());
+    }
+
+    // Replace or remove pkg 
+    // If user has removed all pkgs, abort command
+    fn fix_bad_pkg(&mut self, pkg: &String) -> Result<String, String>{
+        let new_pkg = match PackageSelector::new(pkg.to_owned()).get_replacement_pkg() {
+            Ok(pkg) => pkg,
+            Err(msg) => { 
+                return Err(format!("{}\n'{}' was removed", msg, pkg));
+            }
+        };
+
+        return match new_pkg {
+            Some(new_pkg) => {
+                let msg = format!("Replaced '{}' with '{}'", pkg, new_pkg);
+                self.pkgs.push(new_pkg);
+                Ok(msg)
+            },
+            None => Ok(format!("Removed '{}'", pkg)),
+        };
+    }
+
+    // Leads to DoXbpsUpdate, Failed
+    fn try_execute_xbps_update(&mut self) -> Result<String, String> {
+        self.get_user_permission("Updating xbps")?; 
+        let mut cmd = Command::new("xbps-install");
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .args(["-Syu", "xbps"]);
+
+        return match cmd.output() {
+            Ok(_) => { 
+                self.current_state = StyxState::DoSysUpdate;
+                Ok("xbps has been updated".into()) 
+            },
+            Err(msg) => { 
+                self.current_state = StyxState::Failed;
+                Err(format!("xbps could not be updated\nError Message:\n{}", msg))
+            }
+        };
+    }
+    // Leads to DoSysUpdate, Failed
+    fn try_execute_sys_update(&mut self) -> Result<String, String> {
+        self.get_user_permission("Updating system")?;
+        let cmd = cmd!("xbps-install", "-Syu")
+            .stderr_to_stdout()
+            .stdout_capture()
+            .reader()
+            .expect("STYX (Fatal Error): Could not run install command");
+        let mut reader = BufReader::new(cmd);
+        let mut msg = String::new();
+
+        loop {
+            if reader.read_line(&mut msg).is_err() {
+                self.current_state = StyxState::Failed;
+                return Err(format!("System could not be updated\nError Message:\n{}", msg));
+            }
+            if msg.len() == 0 {
+                self.current_state = StyxState::DoInstall;
+                return Ok("System has been updated".into());
+            }
+            if msg.contains("The 'xbps' package must be updated") {
+                self.current_state = StyxState::DoXbpsUpdate;
+                return Err(format!("xbps must be updated"));
+            }
+            print!("{msg}");
+            msg = String::new();
+        }
+    }
+
+    // Leads to BadPkg, DoSysUpdate, Completed
+    fn try_execute_install(&mut self) -> Result<String, String> {
+        if self.pkgs.len() == 0 {
+            self.current_state = StyxState::Completed;
+            return Ok("Completed".into());
+        }
+
+        self.validate_pkgs()?;
+        let fmt_pkgs: String = self.pkgs.iter().map(|x| format!("{}\n", x)).collect();
+        self.get_user_permission(&format!("The following packages will be installed:\n{}", fmt_pkgs))?;
+
+        let opt = if self.do_sync_repos { "-Sy" } else { "-y" };
+        for pkg in &self.pkgs {
+            let cmd = cmd!("xbps-install", opt, pkg)
+                .stderr_to_stdout()
+                .stdout_capture()
+                .reader()
+                .expect("STYX (Fatal Error): Could not run install command");
+
+            let mut reader = BufReader::new(cmd);
+            let mut msg = String::new();
+
+            loop {
+                if reader.read_line(&mut msg).is_err() {
+                    self.current_state = StyxState::Failed;
+                    return Err(format!("Could not install packages\nError Message:\n{}", msg));
+                }
+                if msg.len() == 0 {
+                    break;
+                }
+                else if msg.contains("broken, unresolvable shlib") {
+                    self.current_state = StyxState::DoSysUpdate;
+                    return Err(format!("System must be updated"));
+                }
+                print!("{msg}");
+                msg = String::new();
+            }
+        }
+        self.current_state = StyxState::Completed;
+        return Ok("Installation Complete!".into());
+    }
+
+    /* HELPER METHODS */
+    fn get_user_permission(&mut self, msg: &str) -> Result<(), String> {
+        println!("{}", msg);
+        loop {
+            print!("Would you like to proceed? Y/n: ");
+            if self.assume_yes {
+                println!("Y");
+                return Ok(());
+            }
+            
             let _ = stdout().flush();
             let mut input = String::new();
             stdin().read_line(&mut input).expect("STYX (Fatal Error): Could not get user input");
             input = input.trim().to_lowercase().into();
 
             if ["n", "no"].contains(&input.as_str()) {
-                match &self.current_state {
-                    States::NeedsSysUpdate | States::NeedsXbpsUpdate => {
-                        self.current_state = States::Completed;
-                        return Err("STYX: User cancelled command.".into());
-                    },
-                    States::BadPkg(pkg) => {
-                        let msg = format!("STYX: Removed package: '{}'", pkg);
-                        self.current_state = States::DoInstall;
-                        return Ok(msg);
-                    },
-
-                    _ => panic!("STYX (Fatal Error): try_apply_fix should only be called if the command state == NeedsSysUpdate || NeedsXbpsUpdate || BadPkg. State is = {:?}", self.current_state),
-                }
+                self.current_state = StyxState::Failed;
+                return Err("User cancelled command".into());
             }
-            else if ["y", "yes", "", "\n"].contains(&input.as_str()) {
-                return Ok(self.apply_fix());
+            else if ["y", "yes", "\n", ""].contains(&input.as_str()) {
+                return Ok(());
             }
-            else {
-                eprintln!("Please select from the options above.");
-            }
+            eprintln!("STYX (Error): Invalid input");
         }
     }
-
-    pub fn is_completed(&self) -> bool {
-        return matches!(self.current_state, States::Completed);
-    }
-
-    pub fn validate_pkgs(&mut self) -> Result<(), Package> {
-        if !self.do_validate_pkgs {
-            return Ok(());
-        }
-
-        let mut res: Result<(), Package> = Ok(());
-        let mut i: i32 = -1;
-
-        for pkg in &self.pkgs {
-            i += 1;
-            let mut cmd = Command::new("xbps-install");
-            cmd.arg("-n")
-                .arg(pkg)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped());
-
-            let output = match cmd.output() {
-                Ok(cmd) => cmd,
-                Err(_) => {
-                    res = Err(pkg.to_owned());
-                    break;
-                }
-            }.stderr;
-             
-            // Convert error message to string
-            let msg = output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
-
-            // No errors were given
-            if msg.len() == 0 {
-                continue; 
-            }
-
-            if msg.starts_with("Package '") && msg.ends_with("' not found in repository pool.") {
-                res = Err(pkg.to_owned());
-                break;
-            }
-            else if msg.contains("shlibs") {
-                return Err("".into());
-            }
-        }
-
-        if res.is_err() {
-            self.pkgs.remove(i as usize);
-        }
-        else {
-            self.do_validate_pkgs = false;
-        }
-        return res;
-    }
-
-    pub fn replace_pkg(&self, pkg: &Package) -> Package {
-        let pkg = match PackageSelector::new(pkg.to_owned()).get_replacement_pkg() {
-            Ok(pkg) => pkg,
-            Err(msg) => { 
-                eprintln!("STYX (Error): {}", msg);
-                return "".into();
-            }
-        };
-
-        return match pkg {
-            Some(pkg) => pkg,
-            None => "".into(),
-        };
-    }
-
-    /* ACTIONS */
-    fn install_pkgs(&mut self) -> Result<(), String>{
-        let mut cmd = Command::new("xbps-install");
-        cmd.arg("-Su");
-        cmd.stderr(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .stdin(Stdio::inherit());
-
-        for pkg in &self.pkgs {
-            cmd.arg(pkg);
-        }
-
-        let res = match cmd.output() {
-            Ok(res) => res,
-            Err(msg) => return Err(msg.to_string()),
-        };
-
-        let msg = res.stderr.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
-        if msg.len() == 0 {
-            return Ok(());
-        }
-        return Err(msg.to_string());
-    }
-    fn update_xbps(&mut self) -> Result<(), ()> {
-        let mut cmd = Command::new("xbps-install");
-        cmd.args(["-Syu", "xbps"]);
-        cmd.stderr(Stdio::piped())
-            .stdout(Stdio::inherit())
-            .stdin(Stdio::inherit());
-
-        match cmd.output() {
-            Ok(_) => return Ok(()),
-            Err(_) => return Err(())
-        };
-    }
-    fn update_sys(&mut self) -> Result<(), (bool, String)> {
-        let mut cmd = Command::new("xbps-install");
-        cmd.arg("-Syu");
-        cmd.stderr(Stdio::piped())
-            .stdout(Stdio::inherit())
-            .stdin(Stdio::inherit());
-
-
-        let res = match cmd.output() {
-            Ok(output) => output,
-            Err(msg) => return Err((false, msg.to_string()))
-        };
-
-        let msg = res.stderr.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
-        if msg.len() == 0 {
-            return Ok(());
-        }
-        else if msg.contains("The 'xbps' package must be updated") {
-            return Err((true, "".into()));
-        }
-        return Err((false, msg));
-    }
+}
+fn parse_output(output: Vec<u8>) -> String {
+    return output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
 }

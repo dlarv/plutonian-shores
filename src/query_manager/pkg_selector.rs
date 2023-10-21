@@ -3,7 +3,7 @@
  * Handle user input
  * Handle actions concerning fixing invalid packages in styx command
  */
-use std::{io::{stdin, stdout, Write}, any::type_name};
+use std::io::{stdin, stdout, Write};
 use crate::query_manager::*;
 
 const QUERY_SHORT_THRESHOLD: usize = 0;

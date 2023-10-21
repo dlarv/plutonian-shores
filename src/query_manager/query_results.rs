@@ -146,15 +146,12 @@ impl QueryResults {
     }
 }
 
-/**
- * Expects {search_term} to already be formatted.
- */
+/// Expects {search_term} to already be formatted.
 fn search_repo(search_term: &Package) -> Result<Vec<u8>, String> {
-    let mut cmd = Command::new("xbps-query");
-    cmd.arg("-R")
-        .arg("--regex")
-        .arg("-s")
-        .stderr(Stdio::piped())
+    // I think xrs searches through cache
+    // It doesn't take sudo to run 
+    let mut cmd = Command::new("xrs");
+    cmd.stderr(Stdio::piped())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped());
 

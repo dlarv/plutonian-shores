@@ -19,7 +19,7 @@
  */
 pub mod query_manager;
 pub mod commands;
-use crate::commands::install_command::{ InstallCommand, States };
+use crate::commands::install_command::{ InstallCommand, StyxState };
 
 fn main() {
     let mut cmd = match parse_args() {
@@ -28,42 +28,15 @@ fn main() {
     };
 
     while !cmd.is_completed() { 
-        match cmd.try_run() {
-            Ok(msg) => {
-                println!("{}", msg);
-                continue;
-            },
-            Err(msg) => eprintln!("{}", msg)
-        };
-
-        // Fatal errors mark command as completed 
-        if cmd.is_completed() {
-            break;
-        }
-
-        match cmd.try_apply_fix() {
-            Ok(msg) => println!("{}", msg),
-            Err(msg) => eprintln!("{}", msg)
-        };
+        cmd.execute();
+        println!();
     }
 }
 
 fn parse_args() -> Option<InstallCommand> {
-    let args: Vec<String> = std::env::args().into_iter().skip(1).flat_map(|x| {
-        if x.starts_with("--") || !x.starts_with("-") {
-            vec![x]
-        }
-        else {
-            x.chars().into_iter().skip(1).map(|x| format!("-{}", x)).collect()
-        }
-    }).collect();
-
-    let mut assume_yes = false;
-    let mut do_system_update = false;
-    let mut pkgs: Vec<String> = Vec::new();
-    let mut xbps_args: Vec<String> = Vec::new();
+    let args = mythos_core::cli::clean_cli_args();
+    let mut cmd = InstallCommand::new(StyxState::DoInstall);
     let mut reading_xbps_args = false;
-    let mut initial_state: States = States::DoInstall;
 
     for arg in args {
         if !reading_xbps_args {
@@ -73,33 +46,25 @@ fn parse_args() -> Option<InstallCommand> {
                     return None;
                 },
                 "-U" | "--update" => {
-                    do_system_update = true;
+                    cmd.set_initial_state(StyxState::DoSysUpdate);
                 },
                 "-X" | "--update-all" => {
-                    initial_state = States::DoXbpsUpdate;
-                    do_system_update = true;
+                    cmd.set_initial_state(StyxState::DoXbpsUpdate);
                 },
                 "-y" | "--assume-yes" => {
-                    assume_yes = true;
+                    cmd.set_assume_yes(true);
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => pkgs.push(arg),
+                _ => cmd.add_pkg(arg),
             };
         }
         else if arg.starts_with("-"){
-            xbps_args.push(arg);
+            cmd.add_xbps_arg(arg);
         }
         else {
-            pkgs.push(arg);
+            cmd.add_pkg(arg);
         }
     }
 
-    return Some(InstallCommand {
-        assume_yes,
-        do_system_update,
-        xbps_args,
-        pkgs,
-        current_state: initial_state,
-        do_validate_pkgs: true,
-    });
+    return Some(cmd);
 }
