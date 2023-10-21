@@ -100,6 +100,10 @@ impl InstallCommand {
             let msg = match cmd.output() {
                 Ok(res) => parse_output(res.stderr),
                 Err(msg) =>  {
+                    if msg.to_string().contains("broken, unresolvable shlib") {
+                        self.current_state = StyxState::DoSysUpdate;
+                        return Err("System must be updated".into());
+                    }
                     self.current_state = StyxState::Failed;
                     return Err(msg.to_string());
                 }
@@ -115,8 +119,14 @@ impl InstallCommand {
                 self.current_state = StyxState::BadPkg(pkg.to_owned());
                 break;
             }
+            if msg.contains("broken, unresolvable shlib") {
+                self.current_state = StyxState::DoSysUpdate;
+                return Err(format!("System must be updated"));
+            }
+
             // Failed for other reasons
             self.current_state = StyxState::Failed;
+            println!("Her");
             return Err(msg);
         }
 
@@ -210,11 +220,17 @@ impl InstallCommand {
 
         let opt = if self.do_sync_repos { "-Sy" } else { "-y" };
         for pkg in &self.pkgs {
-            let cmd = cmd!("xbps-install", opt, pkg)
-                .stderr_to_stdout()
-                .stdout_capture()
-                .reader()
-                .expect("STYX (Fatal Error): Could not run install command");
+            let cmd = match cmd!("xbps-install", opt, pkg).stderr_to_stdout().stdout_capture().reader() {
+                    Ok(cmd) => cmd,
+                    Err(msg) => {
+                        if msg.to_string().contains("broken, unresolvable shlib") {
+                            self.current_state = StyxState::DoSysUpdate;
+                            return Err(format!("System must be updated"));
+                        }
+                        self.current_state = StyxState::Failed;
+                        return Err("STYX (Fatal Error): Could not run install command".into());
+                    }
+            };
 
             let mut reader = BufReader::new(cmd);
             let mut msg = String::new();
@@ -229,7 +245,7 @@ impl InstallCommand {
                 }
                 else if msg.contains("broken, unresolvable shlib") {
                     self.current_state = StyxState::DoSysUpdate;
-                    return Err(format!("System must be updated"));
+                    return Err("System must be updated".into());
                 }
                 print!("{msg}");
                 msg = String::new();

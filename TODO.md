@@ -1,0 +1,4 @@
+- [ ] Rewrite README.md
+- [ ] Remove extra "shlib" checks
+- [ ] Write `--help` output
+- [ ] Make all install methods use `ducts` crate instead of `std::processes::Command`
