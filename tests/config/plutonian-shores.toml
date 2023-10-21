@@ -1,0 +1,5 @@
+[styx]
+do_sync = true
+
+[cocytus]
+fuzzy_find_threshold = 1.0
