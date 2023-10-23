@@ -181,7 +181,7 @@ fn score_result(search_term: &Package, name: &Package) -> Option<i32> {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     fn build_command(search_term: &str) -> Command {

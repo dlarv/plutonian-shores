@@ -84,7 +84,7 @@ impl PackageSelector {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use std::process::{Command, Stdio};
     use super::*;
 
