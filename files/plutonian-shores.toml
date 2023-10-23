@@ -8,3 +8,9 @@ do_sync = true
 fuzzy_find_threshold = 0.3
 # Max number of query results to display in a column
 list_column_length = 20
+
+[lethe]
+# Automatically remove packages installed as dependencies, but are not currently dependencies
+remove_orphans = true
+# Recursively remove packages installed by [pkg] that are not dependencies of any other installed pkg.
+do_recursive_removal = true

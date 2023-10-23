@@ -3,37 +3,6 @@ pub mod remove_command;
 use crate::query_manager::Package;
 use std::io::{stdout, Write, stdin};
 
-/* OBJECTS */
-#[derive(Debug, Clone)]
-pub enum StyxState { 
-    Completed, 
-    Failed,
-    BadPkg(String),
-    DoInstall,
-    DoSysUpdate,
-    DoXbpsUpdate,
-}
-
-#[derive(Debug)]
-pub struct InstallCommand {
-    assume_yes: bool,
-    do_sync_repos: bool,
-	xbps_args: Vec<String>,
-	pkgs: Vec<Package>,
-	current_state: StyxState,
-    do_validate_pkgs: bool,
-} 
-
-#[derive(Debug)]
-pub struct RemoveCommand {
-    assume_yes: bool,
-	xbps_args: Vec<String>,
-	pkgs: Vec<Package>,
-    remove_all_orphans: bool,
-    do_validate_pkgs: bool,
-    bad_pkg: Option<Package>,
-}
-
 /* FUNCTIONS */
 pub fn get_user_permission(assume_yes: bool, msg: &str) -> Result<(), String> {
     println!("{}", msg);
@@ -64,6 +33,37 @@ pub fn parse_output(output: Vec<u8>) -> String {
     return output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
 }
 
+/* STRUCTS & ENUMS */
+#[derive(Debug, Clone)]
+pub enum StyxState { 
+    Completed, 
+    Failed,
+    BadPkg(String),
+    DoInstall,
+    DoSysUpdate,
+    DoXbpsUpdate,
+}
+
+#[derive(Debug)]
+pub struct InstallCommand {
+    assume_yes: bool,
+    do_sync_repos: bool,
+	xbps_args: Vec<String>,
+	pkgs: Vec<Package>,
+	current_state: StyxState,
+    do_validate_pkgs: bool,
+} 
+
+#[derive(Debug)]
+pub struct RemoveCommand {
+    assume_yes: bool,
+	xbps_args: Vec<String>,
+	pkgs: Vec<Package>,
+    remove_orphans: bool,
+    do_recursive: bool,
+    do_validate_pkgs: bool,
+    bad_pkg: Option<Package>,
+}
 /* IMPLEMENTATION */
 pub trait MythosCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package>;

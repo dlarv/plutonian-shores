@@ -19,12 +19,6 @@ impl InstallCommand {
             };
         }
     }
-    pub fn add_pkg(&mut self, pkg: Package) {
-        self.pkgs.push(pkg);
-    }
-    pub fn add_xbps_arg(&mut self, arg: String) {
-        self.xbps_args.push(arg);
-    }
     pub fn set_assume_yes(&mut self, val: bool) {
         self.assume_yes = val;
     }

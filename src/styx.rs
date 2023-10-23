@@ -60,7 +60,7 @@ fn parse_args() -> Option<InstallCommand> {
                     cmd.set_assume_yes(true);
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => cmd.add_pkg(arg),
+                _ => { cmd.add_pkg(arg); () },
             };
         }
         else if arg.starts_with("-"){

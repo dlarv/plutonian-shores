@@ -2,27 +2,37 @@ use crate::{query_manager::PackageSelector, commands::*};
 use std::{process::{Command, Stdio}, io::Read};
 use duct::cmd;
 
+pub static mut DO_RECURSIVE: bool = false;
+pub static mut REMOVE_ORPHANS: bool = true;
+
 impl RemoveCommand {
     pub fn new() -> RemoveCommand {
-        return RemoveCommand { 
-            assume_yes: false, 
-            xbps_args: Vec::new(), 
-            pkgs: Vec::new(), 
-            remove_all_orphans: false,
-            do_validate_pkgs: true,
-            bad_pkg: None,
-        };
+        unsafe {
+            return RemoveCommand { 
+                assume_yes: false, 
+                xbps_args: Vec::new(), 
+                pkgs: Vec::new(), 
+                do_validate_pkgs: true,
+                remove_orphans: REMOVE_ORPHANS,
+                do_recursive: DO_RECURSIVE,
+                bad_pkg: None,
+            };
+        }
     }
     pub fn set_assume_yes(&mut self, val: bool) -> &mut Self{
         self.assume_yes = val;
         return self;
     }
-    pub fn set_remove_all_orphans(&mut self, val: bool) -> &mut Self {
-        self.remove_all_orphans = val;
+    pub fn set_remove_orphans(&mut self, val: bool) -> &mut Self {
+        self.remove_orphans = val;
+        return self;
+    }
+    pub fn set_do_recursive(&mut self, val: bool) -> &mut Self {
+        self.do_recursive = val;
         return self;
     }
 
-    pub fn execute(&mut self) {
+    pub fn execute(&mut self) -> Result<(), ()> {
         if let Some(pkg) = self.bad_pkg.take() {
             match self.fix_bad_pkg(&pkg) {
                 Ok(msg) => println!("LETHE: {}", msg),
@@ -31,9 +41,11 @@ impl RemoveCommand {
         }
         if let Err(msg) = self.validate_pkgs() {
             eprintln!("LETHE (Error): {}", msg);
-            return;
+            return Err(());
         }
-        self.do_removal();
+        self.execute_removal();
+        println!("Completed successfully!");
+        return Ok(());
     }
 
     fn validate_pkgs(&mut self) -> Result<(), String> {
@@ -80,13 +92,23 @@ impl RemoveCommand {
             None => Ok(format!("Removed '{}'", pkg)),
         };
     }
+    fn execute_removal(&mut self) {
+        let mut cmd = Command::new("xbps-remove");
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
 
-    fn do_removal(&mut self) {
-        /*
-         * 
-         */
+        if self.do_recursive {
+            cmd.arg("-R");
+        }
+        if self.remove_orphans {
+            cmd.arg("-o");
+        }
+        cmd.args(self.pkgs());
 
-        todo!()
+        if let Err(msg) = cmd.output() {
+            panic!("LETHE (Fatal Error): {msg}");
+        }
     }
 }
 
