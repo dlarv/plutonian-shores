@@ -17,3 +17,7 @@ serde_derive = "1.0.189"
 [[bin]]
 name = "styx"
 path = "src/styx.rs"
+
+[[bin]]
+name = "lethe"
+path = "src/lethe.rs"
