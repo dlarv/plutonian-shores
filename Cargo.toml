@@ -21,3 +21,7 @@ path = "src/styx.rs"
 [[bin]]
 name = "lethe"
 path = "src/lethe.rs"
+
+[[bin]]
+name = "cocytus"
+path = "src/cocytus.rs"

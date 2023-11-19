@@ -44,7 +44,7 @@ fn parse_args() -> Option<InstallCommand> {
     let mut reading_xbps_args = false;
 
     for arg in args {
-        if !reading_xbps_args {
+        if !reading_xbps_args && arg.starts_with("-") {
             match arg.as_str() {
                 "-h" | "--help" => {
                     println!("TODO: help msg");
@@ -60,7 +60,7 @@ fn parse_args() -> Option<InstallCommand> {
                     cmd.set_assume_yes(true);
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => { cmd.add_pkg(arg); () },
+                _ => { cmd.add_xbps_arg(arg); () },
             };
         }
         else if arg.starts_with("-"){
@@ -85,9 +85,11 @@ mod tests {
 
         unsafe {
             let prev_col_length = query_manager::query_results::LIST_COLUMN_LEN;
+            let threshold_value = query_manager::query_results::THRESHOLD;
             load_config_values(conf);
             assert_eq!(query_manager::query_results::THRESHOLD, 1.0);
             assert_eq!(query_manager::query_results::LIST_COLUMN_LEN, prev_col_length);
+            query_manager::query_results::THRESHOLD = threshold_value;
         }
 
     }

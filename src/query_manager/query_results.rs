@@ -130,7 +130,7 @@ impl QueryResults {
         let mut output: String = String::new();
         let col_count: usize;
         unsafe {
-            col_count = self.len() / LIST_COLUMN_LEN;
+            col_count = std::cmp::max(self.len() / LIST_COLUMN_LEN, 1);
         }
 
         for (i, item) in self.0.iter().enumerate() {
@@ -142,7 +142,6 @@ impl QueryResults {
             else {
                 output += &" ".repeat(self.1 - item.pkg_name.len() + 1);
             }
-
         }
         return output;
     }
@@ -185,11 +184,10 @@ mod tests {
     use super::*;
 
     fn build_command(search_term: &str) -> Command {
-        let mut cmd = Command::new("sudo");
-        cmd.arg("xbps-query");
-        cmd.stdin(Stdio::inherit());
-        cmd.stdout(Stdio::piped());
-        cmd.args(["-R", "--regex", "-s"]);
+        let mut cmd = Command::new("xrs");
+        cmd.stderr(Stdio::piped())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
         cmd.arg(search_term);
         return cmd;
     }

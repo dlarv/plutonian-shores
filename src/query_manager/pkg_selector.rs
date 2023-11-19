@@ -32,13 +32,17 @@ impl PackageSelector {
         }
         self.query_results = Some(results);
         
+        let msg = self.build_msg(vec![]);
         if len <= QUERY_SHORT_THRESHOLD {
-            return Ok(self.display_list_mode());
+            return Ok(self.display_list_mode(&msg));
         } 
         else {
-            return Ok(self.display_list_mode());
+            return Ok(self.display_list_mode(&msg));
             //return Ok(self.display_tui_mode());
         }
+    }
+    pub fn get_pkg(&mut self) -> Result<Option<Package>, String> {
+        todo!()
     }
     /**
      */
@@ -46,9 +50,8 @@ impl PackageSelector {
         todo!()
     }
 
-    fn display_list_mode(&self) -> Option<String> {
+    fn display_list_mode(&self, msg: &str) -> Option<String> {
         let query = self.query_results.as_ref().unwrap();
-        let msg: &str = &format!("Query results for: {}\n0. Remove package\n{}\nEnter option: ", self.pkg_name, query.to_menu());
         let mut input: String;
         let mut num_input: usize;
 
@@ -81,7 +84,20 @@ impl PackageSelector {
             }
         }
     }
+    fn build_msg(&self, opts: Vec<&str>) -> String {
+        let menu = self.query_results.as_ref().unwrap().to_menu();
+        let mut msg: String = format!("Query results for: {}\n{menu}\n0. Remove pkg\n", self.pkg_name);
+
+        let index = menu.len() + 1;
+        for (i, opt) in opts.iter().enumerate() {
+            msg += &format!("{}. {opt}\n", index + i);
+        }
+        msg += "Enter option: ";
+
+        return msg;
+    }
 }
+
 
 #[cfg(test)]
 mod tests {

@@ -108,7 +108,7 @@ impl InstallCommand {
             return Err(msg);
         }
 
-        if !matches!(self.current_state, StyxState::DoInstall) {
+        if matches!(self.current_state, StyxState::BadPkg(_)) {
             let pkg = self.pkgs.remove(counter as usize);
             return Err(format!("Package not found: '{}'", pkg));
         }
@@ -119,6 +119,7 @@ impl InstallCommand {
     // Replace or remove pkg 
     // If user has removed all pkgs, abort command
     fn fix_bad_pkg(&mut self, pkg: &String) -> Result<String, String>{
+        self.current_state = StyxState::DoInstall;
         let new_pkg = match PackageSelector::new(pkg.to_owned()).get_replacement_pkg() {
             Ok(pkg) => pkg,
             Err(msg) => { 

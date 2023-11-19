@@ -43,7 +43,6 @@ pub enum StyxState {
     DoSysUpdate,
     DoXbpsUpdate,
 }
-
 #[derive(Debug)]
 pub struct InstallCommand {
     assume_yes: bool,
@@ -53,7 +52,6 @@ pub struct InstallCommand {
 	current_state: StyxState,
     do_validate_pkgs: bool,
 } 
-
 #[derive(Debug)]
 pub struct RemoveCommand {
     assume_yes: bool,

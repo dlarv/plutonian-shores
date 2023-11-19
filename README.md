@@ -21,4 +21,3 @@ Wraps xbps-query.
 cocytus [opts] [pkgs]
 - Run query using fuzzy-find.
 - Allow user to select pkg to remove or install.
-
