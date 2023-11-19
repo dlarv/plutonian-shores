@@ -21,3 +21,11 @@ pub struct PackageSelector {
     pkg_name: Package,
     query_results: Option<QueryResults>,
 }
+
+#[derive(Debug)]
+pub enum PackageSelection {
+    Package(Package),
+    Packages(Box<Vec<Package>>),
+    OtherOpt(usize),
+    None
+}

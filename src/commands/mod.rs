@@ -1,5 +1,6 @@
 pub mod install_command;
 pub mod remove_command;
+pub mod query_command;
 use crate::query_manager::Package;
 use std::io::{stdout, Write, stdin};
 
@@ -62,6 +63,18 @@ pub struct RemoveCommand {
     do_validate_pkgs: bool,
     bad_pkg: Option<Package>,
 }
+#[derive(Debug)]
+pub enum QueryDisplayMode {
+    Normal,
+    List,
+    Tui,
+}
+#[derive(Debug)]
+pub struct QueryCommand {
+    pkgs: Vec<Package>,
+    xbps_args: Vec<String>,
+    display_mode: QueryDisplayMode,
+}
 /* IMPLEMENTATION */
 pub trait MythosCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package>;
@@ -89,8 +102,11 @@ impl MythosCommand for RemoveCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
 }
-
 impl MythosCommand for InstallCommand {
+    fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
+    fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+}
+impl MythosCommand for QueryCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
 }

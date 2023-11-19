@@ -1,4 +1,4 @@
-use crate::{query_manager::PackageSelector, commands::*};
+use crate::{query_manager::{PackageSelector, PackageSelection}, commands::*};
 use std::{process::{Command, Stdio}, io::Read};
 use duct::cmd;
 
@@ -84,12 +84,17 @@ impl RemoveCommand {
         };
 
         return match new_pkg {
-            Some(new_pkg) => {
+            PackageSelection::Package(new_pkg) => {
                 let msg = format!("Replaced '{}' with '{}'", pkg, new_pkg);
                 self.pkgs.push(new_pkg);
                 Ok(msg)
             },
-            None => Ok(format!("Removed '{}'", pkg)),
+            PackageSelection::Packages(new_pkgs) => {
+                let msg = format!("Replaced '{}' with the following: '{:?}'", pkg, *new_pkgs);
+                self.pkgs.extend(*new_pkgs);
+                Ok(msg)
+            },
+            _ => Ok(format!("Removed '{}'", pkg)),
         };
     }
     fn execute_removal(&mut self) {

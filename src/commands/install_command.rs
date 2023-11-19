@@ -1,7 +1,7 @@
 use std::{io::{stdout, Write, stdin, BufReader, BufRead}, process::{Command, Stdio}};
 use duct::cmd;
 
-use crate::query_manager::{Package, PackageSelector};
+use crate::query_manager::{PackageSelector, PackageSelection};
 use crate::commands::*;
 
 pub static mut DO_SYNC_REPOS: bool = false;
@@ -128,12 +128,17 @@ impl InstallCommand {
         };
 
         return match new_pkg {
-            Some(new_pkg) => {
+            PackageSelection::Package(new_pkg) => {
                 let msg = format!("Replaced '{}' with '{}'", pkg, new_pkg);
                 self.pkgs.push(new_pkg);
                 Ok(msg)
             },
-            None => Ok(format!("Removed '{}'", pkg)),
+            PackageSelection::Packages(new_pkgs) => {
+                let msg = format!("Replaced '{}' with the following: '{:?}'", pkg, *new_pkgs);
+                self.pkgs.extend(*new_pkgs);
+                Ok(msg)
+            }
+            _ => Ok(format!("Removed '{}'", pkg)),
         };
     }
 

@@ -22,38 +22,32 @@ impl PackageSelector {
      * 2. User can re-enter search term
      * 3. User can select directly from results
      */
-    pub fn get_replacement_pkg(&mut self) -> Result<Option<Package>, String> {
+    pub fn get_replacement_pkg(&mut self) -> Result<PackageSelection, String> {
         let results: QueryResults = QueryResults::fuzzy_query(&self.pkg_name)?; 
         let len = results.len();
 
         if len == 0 {
             println!("Query yielded no results for: '{}'", self.pkg_name);
-            return Ok(None);
+            return Ok(PackageSelection::None);
         }
         self.query_results = Some(results);
         
-        let msg = self.build_msg(vec![]);
         if len <= QUERY_SHORT_THRESHOLD {
-            return Ok(self.display_list_mode(&msg));
+            return Ok(self.select_in_list_mode(&self.build_msg(vec![]), false));
         } 
         else {
-            return Ok(self.display_list_mode(&msg));
+            return Ok(self.select_in_list_mode(&self.build_msg(vec![]), false));
             //return Ok(self.display_tui_mode());
         }
     }
-    pub fn get_pkg(&mut self) -> Result<Option<Package>, String> {
-        todo!()
-    }
-    /**
-     */
-    fn display_tui_mode(&self) -> Option<String> {
+
+    fn select_in_tui_mode(&self) -> Option<String> {
         todo!()
     }
 
-    fn display_list_mode(&self, msg: &str) -> Option<String> {
+    fn select_in_list_mode(&self, msg: &str, allow_extra_opts: bool) -> PackageSelection {
         let query = self.query_results.as_ref().unwrap();
         let mut input: String;
-        let mut num_input: usize;
 
         loop {
             print!("{}", msg);
@@ -62,42 +56,74 @@ impl PackageSelector {
 
             stdin().read_line(&mut input).expect("Could not read user input");
             input = input.trim().into();
-            num_input = match input.parse::<usize>() {
-                Ok(num) => num,
-                Err(_) => {
-                    println!("Please enter an option above");
+
+            let res = if input.find(" ") == None {
+                read_single_index(&input, query)
+            }
+            else {
+                read_multiple_index(&input, query)
+            };
+
+            if !allow_extra_opts && matches!(res, Some(PackageSelection::OtherOpt(_))) {
+                eprintln!("Please enter an option above");
+                continue;
+            }
+
+            return match res {
+                Some(res) => res,
+                None => {
+                    eprintln!("Please enter an option above");
                     continue;
                 }
             };
-
-            let _ = stdout().flush();
-
-            if num_input == 0 {
-                return None;
-            }
-            else if num_input > 0 && num_input <= query.len(){
-                return Some(query.0[num_input - 1].pkg_name.to_string());
-            }
-            else {
-                println!("Please enter an option above");
-                continue;
-            }
         }
     }
+
     fn build_msg(&self, opts: Vec<&str>) -> String {
         let menu = self.query_results.as_ref().unwrap().to_menu();
-        let mut msg: String = format!("Query results for: {}\n{menu}\n0. Remove pkg\n", self.pkg_name);
+        let mut msg: String = format!("Query results for: {}\n{menu}\n0. Remove pkg", self.pkg_name);
 
         let index = menu.len() + 1;
         for (i, opt) in opts.iter().enumerate() {
-            msg += &format!("{}. {opt}\n", index + i);
+            msg += &format!("\n{}. {opt}", index + i);
         }
         msg += "Enter option: ";
 
         return msg;
     }
 }
-
+// Return None if index was invalid
+fn read_single_index(input: &str, query: &QueryResults) -> Option<PackageSelection> {
+    let num_input = match input.parse::<usize>() {
+        Ok(num) => num,
+        Err(_) => return None 
+    };
+    return if num_input == 0 {
+        Some(PackageSelection::None)
+    }
+    else if num_input > 0 && num_input <= query.len(){
+        Some(PackageSelection::Package(query.0[num_input - 1].pkg_name.to_string()))
+    }
+    else if num_input > query.len() {
+        Some(PackageSelection::OtherOpt(num_input - query.len()))
+    }
+    else {
+        None
+    }
+}
+fn read_multiple_index(input: &str, query: &QueryResults) -> Option<PackageSelection> {
+    let mut pkgs: Vec<Package> = Vec::new();
+    for num in input.split(" ") {
+        match read_single_index(num, query) {
+            Some(PackageSelection::Package(pkg)) => pkgs.push(pkg),
+            _ => {
+                eprintln!("You cannot use '0' or {}+ while selecting multiple packages!", query.len());
+                return None;
+            }
+        }
+    }
+    return Some(PackageSelection::Packages(Box::new(pkgs)));
+}
 
 #[cfg(test)]
 mod tests {
