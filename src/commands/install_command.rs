@@ -1,4 +1,4 @@
-use std::{io::{stdout, Write, stdin, BufReader, BufRead}, process::{Command, Stdio}};
+use std::{io::{BufReader, BufRead}, process::{Command, Stdio}};
 use duct::cmd;
 
 use crate::query_manager::{PackageSelector, PackageSelection};
@@ -144,7 +144,7 @@ impl InstallCommand {
 
     // Leads to DoXbpsUpdate, Failed
     fn try_execute_xbps_update(&mut self) -> Result<String, String> {
-        self.get_user_permission("Updating xbps")?; 
+        get_user_permission(self.assume_yes, "Updating xbps")?;
         let mut cmd = Command::new("xbps-install");
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
@@ -164,7 +164,7 @@ impl InstallCommand {
     }
     // Leads to DoSysUpdate, Failed
     fn try_execute_sys_update(&mut self) -> Result<String, String> {
-        self.get_user_permission("Updating system")?;
+        get_user_permission(self.assume_yes, "Updating system")?;
         let cmd = cmd!("xbps-install", "-Syu")
             .stderr_to_stdout()
             .stdout_capture()
@@ -200,11 +200,11 @@ impl InstallCommand {
 
         self.validate_pkgs()?;
         let fmt_pkgs: String = self.pkgs.iter().map(|x| format!("{}\n", x)).collect();
-        self.get_user_permission(&format!("The following packages will be installed:\n{}", fmt_pkgs))?;
+        get_user_permission(self.assume_yes, &format!("The following packages will be installed:\n{}", fmt_pkgs))?;
 
         let opt = if self.do_sync_repos { "-Sy" } else { "-y" };
         for pkg in &self.pkgs {
-            let cmd = match cmd!("xbps-install", opt, pkg).stderr_to_stdout().stdout_capture().reader() {
+            let cmd = match cmd!("xbps-install", opt, xbps_args_to_string(&self.xbps_args), pkg).stderr_to_stdout().stdout_capture().reader() {
                     Ok(cmd) => cmd,
                     Err(msg) => {
                         if msg.to_string().contains("broken, unresolvable shlib") {
@@ -237,32 +237,6 @@ impl InstallCommand {
         }
         self.current_state = StyxState::Completed;
         return Ok("Installation Complete!".into());
-    }
-
-    /* HELPER METHODS */
-    fn get_user_permission(&mut self, msg: &str) -> Result<(), String> {
-        println!("{}", msg);
-        loop {
-            print!("Would you like to proceed? Y/n: ");
-            if self.assume_yes {
-                println!("Y");
-                return Ok(());
-            }
-            
-            let _ = stdout().flush();
-            let mut input = String::new();
-            stdin().read_line(&mut input).expect("STYX (Fatal Error): Could not get user input");
-            input = input.trim().to_lowercase().into();
-
-            if ["n", "no"].contains(&input.as_str()) {
-                self.current_state = StyxState::Failed;
-                return Err("User cancelled command".into());
-            }
-            else if ["y", "yes", "\n", ""].contains(&input.as_str()) {
-                return Ok(());
-            }
-            eprintln!("STYX (Error): Invalid input");
-        }
     }
 }
 

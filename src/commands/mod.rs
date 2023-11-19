@@ -33,6 +33,17 @@ pub fn get_user_permission(assume_yes: bool, msg: &str) -> Result<(), String> {
 pub fn parse_output(output: Vec<u8>) -> String {
     return output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
 }
+pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
+    if xbps_args.len() == 0 {
+        return "".into();
+    }
+    return xbps_args.iter().fold("-".to_string(), |acc, x| {
+        if x.starts_with("--") {
+            panic!("Styx can only take the short version of xbps-install args");
+        }
+        acc + x.trim_start_matches("-")
+    });
+}
 
 /* STRUCTS & ENUMS */
 #[derive(Debug, Clone)]
