@@ -25,3 +25,7 @@ path = "src/lethe.rs"
 [[bin]]
 name = "cocytus"
 path = "src/cocytus.rs"
+
+[lib]
+name = "help"
+path = "src/help.rs"

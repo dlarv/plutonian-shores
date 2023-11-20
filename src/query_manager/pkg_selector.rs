@@ -87,7 +87,7 @@ impl PackageSelector {
         for (i, opt) in opts.iter().enumerate() {
             msg += &format!("\n{}. {opt}", index + i);
         }
-        msg += "Enter option: ";
+        msg += "\nEnter option: ";
 
         return msg;
     }

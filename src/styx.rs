@@ -1,9 +1,11 @@
 pub mod query_manager;
 pub mod commands;
 use crate::commands::*;
-use mythos_core::conf;
+use mythos_core::{conf, logger::set_logger_id};
+use help::{self, print_help};
 
 fn main() {
+    set_logger_id("STYX");
     unsafe { 
         if let Some(conf) = conf::MythosConfig::read_file("plutonian-shores") {
             load_config_values(conf);
@@ -47,7 +49,7 @@ fn parse_args() -> Option<InstallCommand> {
         if !reading_xbps_args && arg.starts_with("-") {
             match arg.as_str() {
                 "-h" | "--help" => {
-                    println!("TODO: help msg");
+                    print_help();
                     return None;
                 },
                 "-U" | "--update" => {

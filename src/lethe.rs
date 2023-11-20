@@ -2,9 +2,11 @@ pub mod query_manager;
 pub mod commands;
 use crate::commands::{RemoveCommand, MythosCommand};
 use commands::remove_command;
-use mythos_core::conf;
+use help::print_help;
+use mythos_core::{conf, logger::set_logger_id};
 
 fn main() {
+    set_logger_id("LETHE");
     unsafe { 
         if let Some(conf) = conf::MythosConfig::read_file("plutonian-shores") {
             load_config_values(conf);
@@ -51,7 +53,7 @@ fn parse_args() -> Option<RemoveCommand> {
         if !reading_xbps_args {
             match arg.as_str() {
                 "-h" | "--help" => {
-                    println!("TODO: help msg");
+                    print_help();
                     return None;
                 },
                 "-R" | "--recursive" => {

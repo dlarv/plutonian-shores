@@ -109,6 +109,7 @@ impl RemoveCommand {
         if self.remove_orphans {
             cmd.arg("-o");
         }
+        cmd.arg(xbps_args_to_string(&self.xbps_args));
         cmd.args(self.pkgs());
 
         if let Err(msg) = cmd.output() {
