@@ -10,6 +10,7 @@ impl InstallCommand {
     pub fn new(initial_state: StyxState) -> InstallCommand {
         unsafe {
             return InstallCommand {
+                do_dry_run: false,
                 assume_yes: false,
                 do_sync_repos: DO_SYNC_REPOS,
                 xbps_args: Vec::new(),
@@ -151,6 +152,10 @@ impl InstallCommand {
             .stderr(Stdio::inherit())
             .args(["-Syu", "xbps"]);
 
+        if self.do_dry_run {
+            cmd.arg("-n");
+        }
+
         return match cmd.output() {
             Ok(_) => { 
                 self.current_state = StyxState::DoSysUpdate;
@@ -165,7 +170,12 @@ impl InstallCommand {
     // Leads to DoSysUpdate, Failed
     fn try_execute_sys_update(&mut self) -> Result<String, String> {
         get_user_permission(self.assume_yes, "Updating system")?;
-        let cmd = cmd!("xbps-install", "-Syu")
+        let opts = if self.do_dry_run {
+            "-Syun"
+        } else {
+            "-Syu"
+        };
+        let cmd = cmd!("xbps-install", opts)
             .stderr_to_stdout()
             .stdout_capture()
             .reader()
@@ -202,7 +212,8 @@ impl InstallCommand {
         let fmt_pkgs: String = self.pkgs.iter().map(|x| format!("{}\n", x)).collect();
         get_user_permission(self.assume_yes, &format!("The following packages will be installed:\n{}", fmt_pkgs))?;
 
-        let opt = if self.do_sync_repos { "-Sy" } else { "-y" };
+        let mut opt = if self.do_sync_repos { "-Sy" } else { "-y" };
+        
         for pkg in &self.pkgs {
             let cmd = match cmd!("xbps-install", opt, xbps_args_to_string(&self.xbps_args), pkg).stderr_to_stdout().stdout_capture().reader() {
                     Ok(cmd) => cmd,

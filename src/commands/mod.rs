@@ -58,6 +58,7 @@ pub enum StyxState {
 #[derive(Debug)]
 pub struct InstallCommand {
     assume_yes: bool,
+    do_dry_run: bool,
     do_sync_repos: bool,
 	xbps_args: Vec<String>,
 	pkgs: Vec<Package>,
@@ -66,6 +67,7 @@ pub struct InstallCommand {
 } 
 #[derive(Debug)]
 pub struct RemoveCommand {
+    do_dry_run: bool,
     assume_yes: bool,
 	xbps_args: Vec<String>,
 	pkgs: Vec<Package>,
@@ -85,11 +87,13 @@ pub struct QueryCommand {
     pkgs: Vec<Package>,
     xbps_args: Vec<String>,
     display_mode: QueryDisplayMode,
+    do_dry_run: bool,
 }
 /* IMPLEMENTATION */
 pub trait MythosCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package>;
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String>;
+    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool);
 
     fn add_pkg<T: Into<String>>(&mut self, pkg: T) -> &mut Self {
         self.pkgs().push(pkg.into());
@@ -112,12 +116,15 @@ pub trait MythosCommand {
 impl MythosCommand for RemoveCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
 }
 impl MythosCommand for InstallCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
 }
 impl MythosCommand for QueryCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
 }

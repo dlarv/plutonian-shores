@@ -3,6 +3,7 @@ use super::{QueryCommand, QueryDisplayMode};
 impl QueryCommand {
     pub fn new() -> QueryCommand {
         return QueryCommand { 
+            do_dry_run: false,
             pkgs: Vec::new(), 
             xbps_args: Vec::new(),
             display_mode: QueryDisplayMode::Normal 

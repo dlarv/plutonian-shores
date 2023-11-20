@@ -18,6 +18,7 @@ const STYX_HELP: &str = "styx [opts] [pkgs]\n\
 
                              opts:\n\
                                  -h | --help			Print this menu.\n\
+                                 -n | --dry-run         Run command without making changes to system\n\
                                  -U | --update		    Run system update.\n\
                                  -X | --update-all	    Run xbps and system update.\n\
                                  -y | --assume-yes	    Don't ask user for confirmation.\n\
@@ -30,6 +31,7 @@ const LETHE_HELP: &str = "\n\
                               
                               opts:\n\
                                  -h | --help			Print this menu.\n\
+                                 -n | --dry-run         Run command without making changes to system\n\
                                  -R | --recursive       Recursively remove dependencies.\n\
                                  -o | --remove-orphans  Also remove orphaned pkgs.\n\
                                  -y | --assume-yes	    Don't ask user for confirmation.\n\
@@ -41,6 +43,7 @@ const COCYTUS_HELP: &str = "\n\
 
                             opts:\n\
                                  -h | --help			Print this menu.\n\
+                                 -n | --dry-run         Run command without making changes to system\n\
                                  -t | --tui             Display results in TUI mode\n\
                                  -l | --list            Display results in list mode\n\
                                  -x | --xbps-args	    Pass all following opts directly to xbps-install.";

@@ -9,6 +9,7 @@ impl RemoveCommand {
     pub fn new() -> RemoveCommand {
         unsafe {
             return RemoveCommand { 
+                do_dry_run: false,
                 assume_yes: false, 
                 xbps_args: Vec::new(), 
                 pkgs: Vec::new(), 
@@ -103,6 +104,9 @@ impl RemoveCommand {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
+        if self.do_dry_run {
+            cmd.arg("-n");
+        }
         if self.do_recursive {
             cmd.arg("-R");
         }
