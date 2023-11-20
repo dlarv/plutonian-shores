@@ -46,7 +46,11 @@ fn parse_args() -> Option<InstallCommand> {
     let mut reading_xbps_args = false;
 
     for arg in args {
-        if !reading_xbps_args && arg.starts_with("-") {
+        if arg.starts_with("-") {
+            if reading_xbps_args {
+                cmd.add_xbps_arg(arg);
+                continue;
+            }
             match arg.as_str() {
                 "-h" | "--help" => {
                     print_help();
@@ -62,11 +66,8 @@ fn parse_args() -> Option<InstallCommand> {
                     cmd.set_assume_yes(true);
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => { cmd.add_xbps_arg(arg); () },
+                _ => { cmd.add_xbps_arg(arg); },
             };
-        }
-        else if arg.starts_with("-"){
-            cmd.add_xbps_arg(arg);
         }
         else {
             cmd.add_pkg(arg);

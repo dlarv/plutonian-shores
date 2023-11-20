@@ -39,7 +39,7 @@ fn parse_args() -> Option<QueryCommand> {
                 "-l" | "--list" => cmd.set_display_mode(QueryDisplayMode::List),
                 "-t" | "--tui" => cmd.set_display_mode(QueryDisplayMode::Tui),
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => printfatal!("Unknown arg: {arg}"),
+                _ => { cmd.add_xbps_arg(arg); },
             };
         }
         else {

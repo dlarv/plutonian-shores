@@ -3,7 +3,7 @@ pub mod commands;
 use crate::commands::{RemoveCommand, MythosCommand};
 use commands::remove_command;
 use help::print_help;
-use mythos_core::{conf, logger::set_logger_id};
+use mythos_core::{conf, logger::{set_logger_id, get_logger_id}, printfatal};
 
 fn main() {
     set_logger_id("LETHE");
@@ -50,7 +50,11 @@ fn parse_args() -> Option<RemoveCommand> {
     let mut reading_xbps_args = false;
 
     for arg in args {
-        if !reading_xbps_args {
+        if arg.starts_with("-") {
+            if reading_xbps_args {
+                cmd.add_xbps_arg(arg);
+                continue;
+            }
             match arg.as_str() {
                 "-h" | "--help" => {
                     print_help();
@@ -66,17 +70,13 @@ fn parse_args() -> Option<RemoveCommand> {
                     cmd.set_assume_yes(true);
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                _ => { cmd.add_pkg(arg); () },
+                _ => { cmd.add_xbps_arg(arg); },
             };
-        }
-        else if arg.starts_with("-"){
-            cmd.add_xbps_arg(arg);
         }
         else {
             cmd.add_pkg(arg);
         }
     }
-
     return Some(cmd);
 }
 
