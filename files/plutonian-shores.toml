@@ -1,6 +1,11 @@
+# If true, plutonian-shore cmd is used as a simple alias for xbps cmd.
+# This applies to all p-sh cmds but can be overwritten.
+use_alias_mode = false
 [styx]
 # Add a '-S' arg to xbps-install 
 do_sync = true
+# This value would override the one defined above
+use_alias_mode = false
 
 [cocytus]
 # Score from 0.0 - 1.0. 

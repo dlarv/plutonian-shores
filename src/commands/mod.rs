@@ -1,35 +1,36 @@
 pub mod install_command;
 pub mod remove_command;
 pub mod query_command;
+use duct::{Expression, cmd};
 use mythos_core::{printfatal, logger::get_logger_id};
 
 use crate::query_manager::Package;
 use std::io::{stdout, Write, stdin};
 
 /* FUNCTIONS */
-pub fn get_user_permission(assume_yes: bool, msg: &str) -> Result<(), String> {
+pub fn get_user_permission(assume_yes: bool, msg: &str) {
     println!("{}", msg);
     loop {
         print!("Would you like to proceed? Y/n: ");
         if assume_yes {
             println!("Y");
-            return Ok(());
+            return;
         }
 
         let _ = stdout().flush();
         let mut input = String::new();
-        if let Err(_) = stdin().read_line(&mut input) {
-            return Err("Could not get user input".into());
+        if let Err(msg) = stdin().read_line(&mut input) {
+            printfatal!("{msg}");
         }
         input = input.trim().to_lowercase().into();
 
         if ["n", "no"].contains(&input.as_str()) {
-            return Err("User cancelled command".into());
+            printfatal!("User cancelled command");
         }
         else if ["y", "yes", "\n", ""].contains(&input.as_str()) {
-            return Ok(());
+            return;
         }
-        eprintln!("Invalid input");
+        eprintln!("Invalid input.");
     }
 }
 pub fn parse_output(output: Vec<u8>) -> String {
@@ -96,6 +97,7 @@ pub trait MythosCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package>;
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String>;
     fn set_do_dry_run<'a>(&'a mut self, dry_run: bool);
+    fn build_cmd(&self) -> Expression;
 
     fn add_pkg<T: Into<String>>(&mut self, pkg: T) -> &mut Self {
         self.pkgs().push(pkg.into());
@@ -119,14 +121,50 @@ impl MythosCommand for RemoveCommand {
     fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
     fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
+    fn build_cmd(&self) -> Expression {
+        let mut args: Vec<String> = Vec::new();
+        if self.do_dry_run {
+            args.push("-n".into());
+        }
+        if self.do_recursive {
+            args.push("-R".into());
+        }
+        if self.remove_orphans {
+            args.push("-o".into());
+        }
+        args.extend(self.xbps_args.to_owned());
+        args.extend(self.pkgs.to_owned());
+        return cmd("xbps-remove", args);
+    }
 }
 impl MythosCommand for InstallCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
     fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
+    fn build_cmd(&self) -> Expression {
+        let mut args: Vec<String> = Vec::new();
+        if self.do_sync_repos {
+            args.push("-S".into());
+        }
+        if self.assume_yes {
+            args.push("-y".into());
+        }
+        if self.do_dry_run {
+            args.push("-n".into());
+        }
+        args.extend(self.xbps_args.to_owned());
+        args.extend(self.pkgs.to_owned());
+        return cmd("xbps-install", args);
+    }
 }
 impl MythosCommand for QueryCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
     fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { self.do_dry_run = dry_run; }
+    fn build_cmd(&self) -> Expression {
+        let mut args = vec!["-Rs".to_string()];
+        args.extend(self.xbps_args.to_owned());
+        args.extend(self.pkgs.to_owned());
+        return cmd("xbps-query", args);
+    }
 }
