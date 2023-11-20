@@ -1,6 +1,8 @@
 pub mod install_command;
 pub mod remove_command;
 pub mod query_command;
+use mythos_core::{printfatal, logger::get_logger_id};
+
 use crate::query_manager::Package;
 use std::io::{stdout, Write, stdin};
 
@@ -39,7 +41,7 @@ pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
     }
     return xbps_args.iter().fold("-".to_string(), |acc, x| {
         if x.starts_with("--") {
-            panic!("Styx can only take the short version of xbps-install args");
+            printfatal!("Styx can only take the short version of xbps-install args");
         }
         acc + x.trim_start_matches("-")
     });

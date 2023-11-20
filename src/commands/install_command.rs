@@ -1,5 +1,6 @@
 use std::{io::{BufReader, BufRead}, process::{Command, Stdio}};
 use duct::cmd;
+use mythos_core::{printfatal, logger::get_logger_id, printerror};
 
 use crate::query_manager::{PackageSelector, PackageSelection};
 use crate::commands::*;
@@ -51,10 +52,9 @@ impl InstallCommand {
             Ok(msg) => println!("STYX: {}", msg),
             Err(msg) => {
                 if matches!(self.current_state, StyxState::Failed) {
-                    eprintln!("STYX (FATAL ERROR): {}", msg);
-                    return;
+                    printfatal!("{msg}");
                 }
-                eprintln!("STYX (ERROR): {}", msg);
+                printerror!("{msg}");
             }
         };
     }

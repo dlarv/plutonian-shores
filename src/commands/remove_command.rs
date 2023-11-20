@@ -1,6 +1,7 @@
 use crate::{query_manager::{PackageSelector, PackageSelection}, commands::*};
 use std::{process::{Command, Stdio}, io::Read};
 use duct::cmd;
+use mythos_core::{printfatal, logger::get_logger_id, fatalmsg, printwarn, printinfo, printerror};
 
 pub static mut DO_RECURSIVE: bool = false;
 pub static mut REMOVE_ORPHANS: bool = true;
@@ -36,16 +37,16 @@ impl RemoveCommand {
     pub fn execute(&mut self) -> Result<(), ()> {
         if let Some(pkg) = self.bad_pkg.take() {
             match self.fix_bad_pkg(&pkg) {
-                Ok(msg) => println!("LETHE: {}", msg),
-                Err(msg) => eprintln!("LETHE (Error): {}", msg)
+                Ok(msg) => printinfo!("{msg}"),
+                Err(msg) =>printerror!("{msg}")
             }
         }
         if let Err(msg) = self.validate_pkgs() {
-            eprintln!("LETHE (Error): {}", msg);
+            printwarn!("{msg}");
             return Err(());
         }
         self.execute_removal();
-        println!("Completed successfully!");
+        printinfo!("Completed successfully!");
         return Ok(());
     }
 
@@ -59,7 +60,7 @@ impl RemoveCommand {
             let mut cmd = cmd!("xbps-remove", "-n", pkg)
                 .stderr_to_stdout()
                 .stdout_capture()
-                .reader().expect("Could not run remove commmand");
+                .reader().expect(&fatalmsg!("Could not run remove commmand"));
 
             let _ = cmd.read_to_string(&mut msg);
             if msg.trim().ends_with("not currently installed."){
@@ -117,7 +118,7 @@ impl RemoveCommand {
         cmd.args(self.pkgs());
 
         if let Err(msg) = cmd.output() {
-            panic!("LETHE (Fatal Error): {msg}");
+            printfatal!("{msg}");
         }
     }
 }
@@ -135,5 +136,4 @@ mod tests {
         let _ = cmd.validate_pkgs();
         assert_eq!(cmd.bad_pkg, Some("blen".into()));
     }
-
 }
