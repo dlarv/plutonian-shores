@@ -27,6 +27,9 @@ impl InstallCommand {
     pub fn set_initial_state(&mut self, state: StyxState) {
         self.current_state = state;
     }
+    pub fn set_validate_pkgs(&mut self, val: bool) {
+        self.do_validate_pkgs = val;
+    }
     pub fn is_completed(&self) -> bool {
         return matches!(self.current_state, StyxState::Failed) 
             || matches!(self.current_state, StyxState::Completed);
@@ -60,6 +63,7 @@ impl InstallCommand {
 
         while !self.is_completed() {
             match &self.current_state.to_owned() {
+                StyxState::AliasMode => self.execute_alias_mode(),
                 StyxState::DoXbpsUpdate => self.try_execute_xbps_update(),
                 StyxState::DoSysUpdate => self.try_execute_sys_update(),
                 StyxState::DoInstall => self.try_execute_install(),
@@ -104,6 +108,13 @@ impl InstallCommand {
         if require_update {
             println!("System must be updated.");
         }
+    }
+
+    fn execute_alias_mode(&mut self) {
+        self.current_state = StyxState::Completed;
+        self.build_cmd()
+            .unchecked()
+            .run().unwrap();    
     }
 
     // Replace or remove pkg 

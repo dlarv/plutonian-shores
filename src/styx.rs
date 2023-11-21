@@ -92,9 +92,8 @@ fn parse_args() -> Option<InstallCommand> {
 
     if alias_mode {
         cmd.set_assume_yes(false);
-        cmd.set_initial_state(StyxState::DoInstall);
+        cmd.set_initial_state(StyxState::AliasMode);
         cmd.set_do_dry_run(false);
-
     }
 
     return Some(cmd);

@@ -53,6 +53,7 @@ pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
 pub enum StyxState { 
     Completed, 
     Failed,
+    AliasMode,
     BadPkg(String),
     DoInstall,
     DoSysUpdate,
