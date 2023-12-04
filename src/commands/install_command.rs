@@ -204,8 +204,7 @@ impl InstallCommand {
             return;
         }
 
-        let fmt_pkgs: String = self.pkgs.iter().map(|x| format!("{}\n", x)).collect();
-        get_user_permission(self.assume_yes, &format!("The following packages will be installed:\n{}", fmt_pkgs));
+        get_user_permission(self.assume_yes, &format!("The following packages will be installed:\n{pkgs}", pkgs=self.list_pkgs()));
 
         let cmd = &mut self.build_install_cmd().unchecked();
         cmd.run().expect(&fatalmsg!("Could not run install command."));

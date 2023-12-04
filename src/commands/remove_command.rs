@@ -95,6 +95,7 @@ impl RemoveCommand {
         };
     }
     fn execute_removal(&mut self) {
+        get_user_permission(self.assume_yes, &format!("The following packages will be removed:\n{pkgs}", pkgs=self.list_pkgs()));
         let mut cmd = Command::new("xbps-remove");
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
