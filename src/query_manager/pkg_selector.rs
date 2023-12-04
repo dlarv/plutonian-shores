@@ -18,30 +18,32 @@ impl PackageSelector {
         };
     }
 
-    pub fn select_replacement_pkgs(&mut self) -> Result<PackageSelection, String> {
+    pub fn select_replacement_pkgs(&mut self) -> PackageSelection {
         let results = match QueryResults::fuzzy_query(&self.pkg_name) {
             Some(res) => res,
             None => { 
                 printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
-                return Ok(PackageSelection::None);
+                return PackageSelection::None;
             } 
         };
+        let len = results.len();
+        self.query_results = Some(results);
 
-        if results.len() <= QUERY_SHORT_THRESHOLD {
-            return Ok(self.select_in_list_mode(&self.build_msg(vec![]), false));
+        if len <= QUERY_SHORT_THRESHOLD {
+            return self.select_in_list_mode(&self.build_msg(vec![]), false);
         } 
         else {
-            return Ok(self.select_in_list_mode(&self.build_msg(vec![]), false));
-            //return Ok(self.display_tui_mode());
+            return self.select_in_list_mode(&self.build_msg(vec![]), false);
+            //return self.display_tui_mode();
         }
     }
 
-    pub fn select_pkgs(&mut self, display_mode: QueryDisplayMode, opts: Vec<&str>) -> Result<PackageSelection, String> {
+    pub fn select_pkgs(&mut self, display_mode: QueryDisplayMode, opts: Vec<&str>) -> PackageSelection {
         let results = match QueryResults::fuzzy_query(&self.pkg_name) {
             Some(res) => res,
             None => { 
                 printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
-                return Ok(PackageSelection::None);
+                return PackageSelection::None;
             } 
         };
         
@@ -50,12 +52,13 @@ impl PackageSelector {
             QueryDisplayMode::Tui => false,
             QueryDisplayMode::Smart => results.len() <= QUERY_SHORT_THRESHOLD,
         };
+        self.query_results = Some(results);
         if use_list_mode {
-            return Ok(self.select_in_list_mode(&self.build_msg(opts), true));
+            return self.select_in_list_mode(&self.build_msg(opts), true);
         } 
         else {
-            return Ok(self.select_in_list_mode(&self.build_msg(opts), true));
-            //return Ok(self.display_tui_mode());
+            return self.select_in_list_mode(&self.build_msg(opts), true);
+            //return self.display_tui_mode();
         }
     }
     /**

@@ -78,12 +78,7 @@ impl RemoveCommand {
         return Ok(());
     }
     fn fix_bad_pkg(&mut self, pkg: &String) -> Result<String, String>{
-        let new_pkg = match PackageSelector::new(pkg.to_owned()).get_replacement_pkg() {
-            Ok(pkg) => pkg,
-            Err(msg) => { 
-                return Err(format!("{}\n'{}' was removed", msg, pkg));
-            }
-        };
+        let new_pkg = PackageSelector::new(pkg.to_owned()).select_replacement_pkgs();
 
         return match new_pkg {
             PackageSelection::Package(new_pkg) => {

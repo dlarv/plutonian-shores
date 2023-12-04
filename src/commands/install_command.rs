@@ -77,7 +77,6 @@ impl InstallCommand {
         let mut bad_pkg_index: Vec<usize> = Vec::new();
 
         for (i, pkg) in self.pkgs.iter().enumerate() {
-
             let res = cmd!("xbps-install", "-n", pkg)
                 .stderr_to_stdout()
                 .stdout_capture()
@@ -120,12 +119,7 @@ impl InstallCommand {
     // Replace or remove pkg 
     fn fix_bad_pkg(&mut self, pkg: &str) -> Result<String, String>{
         self.current_state = StyxState::DoInstall;
-        let new_pkg = match PackageSelector::new(pkg.to_owned()).get_replacement_pkg() {
-            Ok(pkg) => pkg,
-            Err(msg) => { 
-                return Err(format!("{}\n'{}' was removed", msg, pkg));
-            }
-        };
+        let new_pkg = PackageSelector::new(pkg.to_owned()).select_replacement_pkgs();
 
         return match new_pkg {
             PackageSelection::Package(new_pkg) => {
