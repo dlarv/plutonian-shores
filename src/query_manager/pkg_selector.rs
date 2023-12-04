@@ -4,7 +4,9 @@
  * Handle actions concerning fixing invalid packages in styx command
  */
 use std::io::{stdin, stdout, Write};
-use crate::query_manager::*;
+use mythos_core::{cli::get_cli_input, printfatal, logger::get_logger_id, printinfo};
+
+use crate::{query_manager::*, commands::QueryDisplayMode};
 
 const QUERY_SHORT_THRESHOLD: usize = 0;
 
@@ -16,23 +18,16 @@ impl PackageSelector {
         };
     }
 
-    /**
-     * Simple query:
-     * 1. Query with fuzzy find
-     * 2. User can re-enter search term
-     * 3. User can select directly from results
-     */
-    pub fn get_replacement_pkg(&mut self) -> Result<PackageSelection, String> {
-        let results: QueryResults = QueryResults::fuzzy_query(&self.pkg_name)?; 
-        let len = results.len();
+    pub fn select_replacement_pkgs(&mut self) -> Result<PackageSelection, String> {
+        let results = match QueryResults::fuzzy_query(&self.pkg_name) {
+            Some(res) => res,
+            None => { 
+                printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
+                return Ok(PackageSelection::None);
+            } 
+        };
 
-        if len == 0 {
-            println!("Query yielded no results for: '{}'", self.pkg_name);
-            return Ok(PackageSelection::None);
-        }
-        self.query_results = Some(results);
-        
-        if len <= QUERY_SHORT_THRESHOLD {
+        if results.len() <= QUERY_SHORT_THRESHOLD {
             return Ok(self.select_in_list_mode(&self.build_msg(vec![]), false));
         } 
         else {
@@ -41,22 +36,48 @@ impl PackageSelector {
         }
     }
 
+    pub fn select_pkgs(&mut self, display_mode: QueryDisplayMode, opts: Vec<&str>) -> Result<PackageSelection, String> {
+        let results = match QueryResults::fuzzy_query(&self.pkg_name) {
+            Some(res) => res,
+            None => { 
+                printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
+                return Ok(PackageSelection::None);
+            } 
+        };
+        
+        let use_list_mode = match display_mode {
+            QueryDisplayMode::AliasMode | QueryDisplayMode::List => true,
+            QueryDisplayMode::Tui => false,
+            QueryDisplayMode::Smart => results.len() <= QUERY_SHORT_THRESHOLD,
+        };
+        if use_list_mode {
+            return Ok(self.select_in_list_mode(&self.build_msg(opts), true));
+        } 
+        else {
+            return Ok(self.select_in_list_mode(&self.build_msg(opts), true));
+            //return Ok(self.display_tui_mode());
+        }
+    }
+    /**
+     * Run a strict query first. If that returns no results, run a fuzzy query.
+     * Returns None if no results were found in either query.
+     */
+    fn smart_query(&mut self) -> Option<QueryResults> {
+        return match QueryResults::strict_query(&self.pkg_name) {
+            Some(res) => Some(res),
+            None => return QueryResults::fuzzy_query(&self.pkg_name)
+        };
+    }
+
     fn select_in_tui_mode(&self) -> Option<String> {
         todo!()
     }
 
     fn select_in_list_mode(&self, msg: &str, allow_extra_opts: bool) -> PackageSelection {
         let query = self.query_results.as_ref().unwrap();
-        let mut input: String;
 
         loop {
-            print!("{}", msg);
-            let _ = stdout().flush();
-            input = String::new();
-
-            stdin().read_line(&mut input).expect("Could not read user input");
-            input = input.trim().into();
-
+            let input = get_cli_input(msg);
             let res = if input.find(" ") == None {
                 read_single_index(&input, query)
             }
@@ -132,8 +153,7 @@ mod tests {
 
     fn build_command(search_term: &str) -> Command {
         println!("{}", search_term);
-        let mut cmd = Command::new("sudo");
-        cmd.arg("xbps-query");
+        let mut cmd = Command::new("xbps-query");
         cmd.stdin(Stdio::inherit());
         cmd.stdout(Stdio::piped());
         cmd.args(["-R", "--regex", "-s"]);
@@ -157,7 +177,7 @@ mod tests {
     //#[test]
     fn get_user_selection() {
         let mut sel = get_pkg_selector();
-        let res = sel.get_replacement_pkg();
+        let res = sel.select_replacement_pkgs();
         println!("{:?}", res);
         assert!(true);
     }

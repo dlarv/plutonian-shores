@@ -4,6 +4,7 @@
  */
 use crate::query_manager::*;
 use std::process::{Command, Stdio};
+use mythos_core::{fatalmsg, logger::get_logger_id};
 use rust_fuzzy_search::fuzzy_compare;
 
 pub static mut THRESHOLD: f32 = 0.3;
@@ -12,19 +13,27 @@ impl QueryResults {
     /**
      * Uses fuzzy search to match packages in void repo to {search_term}
      */
-    pub fn fuzzy_query(search_term: &Package) -> Result<QueryResults, String> {
-        let results = search_repo(&"".into())?;
+    pub fn fuzzy_query(search_term: &Package) -> Option<QueryResults> {
+        let results = search_repo(&"".into());
         let mut output = QueryResults::parse_results(results, search_term);  
         output.sort(); 
-        return Ok(output);
+        if output.len() == 0 {
+            return None;
+        }
+        return Some(output);
     }
 
     /**
      * Queries void repo using exactly {search_term}
      */
-    pub fn strict_query(search_term: &Package) -> Result<QueryResults, String> {
-        let results = search_repo(search_term)?;
-        return Ok(QueryResults::parse_results(results, search_term));
+    pub fn strict_query(search_term: &Package) -> Option<QueryResults> {
+        let results = search_repo(search_term);
+        let mut output = QueryResults::parse_results(results, search_term);
+        output.sort();
+        if output.len() == 0 {
+            return None;
+        }
+        return Some(output);
     }
 
     /**
@@ -109,6 +118,21 @@ impl QueryResults {
         } // end loop
         return QueryResults(output, longest_name);
     }
+    pub fn to_list(&self) -> String {
+        let spacer = " ".repeat(self.1);
+        let mut output: Vec<String> = Vec::with_capacity(self.0.len());
+        
+        for result in &self.0 {
+            let is_installed_marker = if result.is_installed {
+                "*"
+            } 
+            else { 
+                "-"
+            };
+            output.push(format!("[{is_installed_marker}] {}-{}{spacer}{}", result.pkg_name, result.pkg_version, result.pkg_description));
+        }
+        return output.join("\n");
+    }
 
     /**
      * Sorts list in descending order by {score}
@@ -148,20 +172,17 @@ impl QueryResults {
 }
 
 /// Expects {search_term} to already be formatted.
-fn search_repo(search_term: &Package) -> Result<Vec<u8>, String> {
+fn search_repo(search_term: &Package) -> Vec<u8> {
     // I think xrs searches through cache
     // It doesn't take sudo to run 
-    let mut cmd = Command::new("xrs");
-    cmd.stderr(Stdio::piped())
+    return Command::new("xrs")
+        .stderr(Stdio::piped())
         .stdin(Stdio::piped())
-        .stdout(Stdio::piped());
-
-    cmd.arg(search_term);
-
-    return match cmd.output() {
-        Ok(o) => Ok(o.stdout),
-        Err(_) => Err("Error running query".into())
-    };
+        .stdout(Stdio::piped())
+        .arg(search_term)
+        .output()
+        .expect(&fatalmsg!("Error running query for {search_term}"))
+        .stdout;
 }
 
 /**
