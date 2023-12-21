@@ -13,6 +13,8 @@ use_alias_mode = false
 fuzzy_find_threshold = 0.3
 # Max number of query results to display in a column
 list_column_length = 20
+# Default mode to display results. Options are 'Tui', 'List', 'Alias' or 'Smart'.
+default_display_mode = 'Smart'
 
 [lethe]
 # Automatically remove packages installed as dependencies, but are not currently dependencies

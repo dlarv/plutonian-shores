@@ -116,7 +116,7 @@ pub trait MythosCommand {
         self.xbps_args().push(arg);
         return self;
     }
-    fn list_pkgs(&self) -> String {
+    fn list_pkgs(&mut self) -> String {
         return self.pkgs().iter().map(|x| format!("{}\n", x)).collect();
     }
 }

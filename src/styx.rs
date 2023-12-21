@@ -13,11 +13,7 @@ fn main() {
         }
     }
     
-    let mut cmd = match parse_args() {
-        Some(cmd) => cmd,
-        None => return
-    };
-
+    let mut cmd = parse_args();
     cmd.execute();
 }
 
@@ -44,7 +40,7 @@ unsafe fn load_config_values(conf: conf::MythosConfig) {
     }
 }
 
-fn parse_args() -> Option<InstallCommand> {
+fn parse_args() -> InstallCommand {
     let args = mythos_core::cli::clean_cli_args();
     let mut cmd = InstallCommand::new(StyxState::DoInstall);
     let mut reading_xbps_args = false;
@@ -60,7 +56,7 @@ fn parse_args() -> Option<InstallCommand> {
             match arg.as_str() {
                 "-h" | "--help" => {
                     print_help();
-                    return None;
+                    std::process::exit(0);
                 },
                 "-n" | "--dry-run" => {
                     cmd.set_do_dry_run(true);
@@ -96,5 +92,5 @@ fn parse_args() -> Option<InstallCommand> {
         cmd.set_do_dry_run(false);
     }
 
-    return Some(cmd);
+    return cmd;
 }

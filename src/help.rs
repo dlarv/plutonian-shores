@@ -43,13 +43,12 @@ const LETHE_HELP: &str = "\n\
 const COCYTUS_HELP: &str = "\n\
                             cocytus [opts] [pkgs]\n\
                             Wrapper for xbps-query\n\
-                            Cocytus queries remove repos. User can select from results tp install/remove pkgs.
+                            Cocytus queries remove repos. User can select from results to install/remove pkgs.
 
                             opts:\n\
                                  -h | --help			Print this menu.\n\
                                  -a | --alias           Treat this cmd as an alias.\n\
                                  -w | --wrapper         Opposite of -a.\n\
-                                 -n | --dry-run         Run command without making changes to system\n\
                                  -t | --tui             Display results in TUI mode\n\
                                  -l | --list            Display results in list mode\n\
                                  -x | --xbps-args	    Pass all following opts directly to xbps-install.";

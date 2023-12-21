@@ -12,10 +12,7 @@ fn main() {
             load_config_values(conf);
         }
     }
-    let mut cmd = match parse_args() {
-        Some(cmd) => cmd,
-        None => return
-    };
+    let mut cmd = parse_args();
     loop {
         match cmd.execute() {
             Ok(_) => break,
@@ -44,7 +41,7 @@ unsafe fn load_config_values(conf: conf::MythosConfig) {
     }
 }
 
-fn parse_args() -> Option<RemoveCommand> {
+fn parse_args() -> RemoveCommand {
     let args = mythos_core::cli::clean_cli_args();
     let mut cmd = RemoveCommand::new();
     let mut reading_xbps_args = false;
@@ -58,7 +55,7 @@ fn parse_args() -> Option<RemoveCommand> {
             match arg.as_str() {
                 "-h" | "--help" => {
                     print_help();
-                    return None;
+                    std::process::exit(0);
                 },
                 "-R" | "--recursive" => {
                     cmd.set_do_recursive(true);
@@ -77,7 +74,7 @@ fn parse_args() -> Option<RemoveCommand> {
             cmd.add_pkg(arg);
         }
     }
-    return Some(cmd);
+    return cmd;
 }
 
 #[cfg(test)]

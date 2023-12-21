@@ -3,9 +3,7 @@
  * Handle user input
  * Handle actions concerning fixing invalid packages in styx command
  */
-use std::io::{stdin, stdout, Write};
-use mythos_core::{cli::get_cli_input, printfatal, logger::get_logger_id, printinfo};
-
+use mythos_core::{cli::get_cli_input, printinfo, logger::get_logger_id};
 use crate::{query_manager::*, commands::QueryDisplayMode};
 
 const QUERY_SHORT_THRESHOLD: usize = 0;
@@ -16,6 +14,9 @@ impl PackageSelector {
             pkg_name, 
             query_results: None 
         };
+    }
+    pub fn from_results(pkg_name: Package, results: QueryResults) -> PackageSelector {
+        return PackageSelector { pkg_name, query_results: Some(results) }
     }
 
     pub fn select_replacement_pkgs(&mut self) -> PackageSelection {
@@ -30,15 +31,15 @@ impl PackageSelector {
         self.query_results = Some(results);
 
         if len <= QUERY_SHORT_THRESHOLD {
-            return self.select_in_list_mode(&self.build_msg(vec![]), false);
+            return self.select_in_list_mode(&self.build_msg(), false);
         } 
         else {
-            return self.select_in_list_mode(&self.build_msg(vec![]), false);
+            return self.select_in_list_mode(&self.build_msg(), false);
             //return self.display_tui_mode();
         }
     }
 
-    pub fn select_pkgs(&mut self, display_mode: QueryDisplayMode, opts: Vec<&str>) -> PackageSelection {
+    pub fn select_pkgs(&mut self, display_mode: &QueryDisplayMode) -> PackageSelection {
         let results = match QueryResults::fuzzy_query(&self.pkg_name) {
             Some(res) => res,
             None => { 
@@ -54,22 +55,12 @@ impl PackageSelector {
         };
         self.query_results = Some(results);
         if use_list_mode {
-            return self.select_in_list_mode(&self.build_msg(opts), true);
+            return self.select_in_list_mode(&self.build_msg(), true);
         } 
         else {
-            return self.select_in_list_mode(&self.build_msg(opts), true);
+            return self.select_in_list_mode(&self.build_msg(), true);
             //return self.display_tui_mode();
         }
-    }
-    /**
-     * Run a strict query first. If that returns no results, run a fuzzy query.
-     * Returns None if no results were found in either query.
-     */
-    fn smart_query(&mut self) -> Option<QueryResults> {
-        return match QueryResults::strict_query(&self.pkg_name) {
-            Some(res) => Some(res),
-            None => return QueryResults::fuzzy_query(&self.pkg_name)
-        };
     }
 
     fn select_in_tui_mode(&self) -> Option<String> {
@@ -103,17 +94,9 @@ impl PackageSelector {
         }
     }
 
-    fn build_msg(&self, opts: Vec<&str>) -> String {
+    fn build_msg(&self) -> String {
         let menu = self.query_results.as_ref().unwrap().to_menu();
-        let mut msg: String = format!("Query results for: {}\n{menu}\n0. Remove pkg", self.pkg_name);
-
-        let index = menu.len() + 1;
-        for (i, opt) in opts.iter().enumerate() {
-            msg += &format!("\n{}. {opt}", index + i);
-        }
-        msg += "\nEnter option: ";
-
-        return msg;
+        return format!("Query results for: {name}\n{menu}\n0. Remove pkg\nEnter option: ", name=self.pkg_name);
     }
 }
 // Return None if index was invalid
