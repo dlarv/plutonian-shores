@@ -2,5 +2,5 @@
 target/debug/styx $B o755
 target/debug/cocytus $B o755
 target/debug/lethe $B o755
-files/plutonian-shores.toml $C o 
-files/plutonian-shores.toml $LC 777 
+data/plutonian-shores.toml $C o 
+data/plutonian-shores.toml $LC 777 
