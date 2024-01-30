@@ -89,6 +89,12 @@ impl InstallCommand {
                 require_update = true;
                 continue;
             }
+            // XBPS must be updated
+            else if res.contains("The 'xbps' package must be updated") {
+                self.current_state = StyxState::DoXbpsUpdate;
+                require_update = true;
+                continue;
+            }
             // Pkg must be replaced
             else if res.starts_with("Package '") && res.ends_with("' not found in repository pool.") {
                 bad_pkg_index.push(i);
