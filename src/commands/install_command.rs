@@ -119,7 +119,7 @@ impl InstallCommand {
         self.current_state = StyxState::Completed;
         self.build_cmd()
             .unchecked()
-            .run().unwrap();    
+            .run().unwrap();
     }
 
     // Replace or remove pkg 

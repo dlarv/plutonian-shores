@@ -40,20 +40,21 @@ impl PackageSelector {
     }
 
     pub fn select_pkgs(&mut self, display_mode: &QueryDisplayMode) -> PackageSelection {
-        let results = match QueryResults::fuzzy_query(&self.pkg_name) {
-            Some(res) => res,
-            None => { 
-                printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
-                return PackageSelection::None;
-            } 
-        };
+        if self.query_results.is_none() {
+            self.query_results = match QueryResults::fuzzy_query(&self.pkg_name) {
+                Some(res) => Some(res),
+                None => { 
+                    printinfo!("Query yielded no results for: '{name}'", name=self.pkg_name);
+                    return PackageSelection::None;
+                } 
+            };
+        }
         
         let use_list_mode = match display_mode {
             QueryDisplayMode::AliasMode | QueryDisplayMode::List => true,
             QueryDisplayMode::Tui => false,
-            QueryDisplayMode::Smart => results.len() <= QUERY_SHORT_THRESHOLD,
+            QueryDisplayMode::Smart => self.query_results.as_mut().unwrap().len() <= QUERY_SHORT_THRESHOLD,
         };
-        self.query_results = Some(results);
         if use_list_mode {
             return self.select_in_list_mode(&self.build_msg(), true);
         } 

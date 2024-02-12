@@ -92,6 +92,7 @@ pub struct QueryCommand {
     pkgs: Vec<Package>,
     xbps_args: Vec<String>,
     display_mode: QueryDisplayMode,
+    do_dry_run: bool
 }
 /* IMPLEMENTATION */
 pub trait MythosCommand {
@@ -164,7 +165,9 @@ impl MythosCommand for InstallCommand {
 impl MythosCommand for QueryCommand {
     fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
-    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { }
+    fn set_do_dry_run<'a>(&'a mut self, dry_run: bool) { 
+        self.do_dry_run = dry_run;
+    }
 
     fn build_cmd(&self) -> Expression {
         let mut args = Vec::new();
