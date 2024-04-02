@@ -1,25 +1,27 @@
 pub mod query_manager;
 pub mod commands;
 use crate::commands::*;
-use mythos_core::{conf, logger::set_logger_id, printinfo};
+use mythos_core::{conf, logger::set_logger_id};
 use help::{self, print_help};
 
-static mut USE_ALIAS_MODE: bool = false;
 fn main() {
     set_logger_id("STYX");
-    unsafe { 
+
+    let mut cmd = InstallCommand::new();
+
+    unsafe {
         if let Some(conf) = conf::MythosConfig::read_file("plutonian-shores") {
-            load_config_values(conf);
+            load_config_values(&mut cmd, conf);
         }
     }
     
-    let mut cmd = parse_args();
+    parse_args(&mut cmd);
     cmd.execute();
 }
 
-unsafe fn load_config_values(conf: conf::MythosConfig) {
+unsafe fn load_config_values(cmd: &mut InstallCommand, conf: conf::MythosConfig) {
     if let Some(val) = conf.try_get_boolean("use_alias_mode") {
-        USE_ALIAS_MODE = val;
+        cmd.use_alias_mode = val;
     }
     if let Some(conf) = conf.get_subsection("cocytus") { 
         if let Some(val) = conf.try_get_float("fuzzy_find_threshold") {
@@ -32,20 +34,17 @@ unsafe fn load_config_values(conf: conf::MythosConfig) {
     }
     if let Some(conf) = conf.get_subsection("styx") {
         if let Some(val) = conf.try_get_boolean("do_sync") {
-            install_command::DO_SYNC_REPOS = val;
+            cmd.do_sync_repos = val;
         }
         if let Some(val) = conf.try_get_boolean("use_alias_mode") {
-            USE_ALIAS_MODE = val;
+            cmd.use_alias_mode = val;
         }
     }
 }
 
-fn parse_args() -> InstallCommand {
+fn parse_args(cmd: &mut InstallCommand) {
     let args = mythos_core::cli::clean_cli_args();
-    let mut cmd = InstallCommand::new(StyxState::DoInstall);
     let mut reading_xbps_args = false;
-    let mut alias_mode: bool;
-    unsafe { alias_mode = USE_ALIAS_MODE; }
 
     for arg in args {
         if arg.starts_with("-") {
@@ -59,24 +58,25 @@ fn parse_args() -> InstallCommand {
                     std::process::exit(0);
                 },
                 "-n" | "--dry-run" => {
-                    cmd.set_do_dry_run(true);
+                    cmd.do_dry_run = true;
                 },
                 "-u" | "--update" => {
-                    cmd.set_initial_state(StyxState::DoSysUpdate);
+                    cmd.run_sys_update = true;
                 },
                 "-X" | "--update-all" => {
-                    cmd.set_initial_state(StyxState::DoXbpsUpdate);
+                    cmd.run_xbps_update = true;
+                    cmd.run_sys_update = true;
                 },
                 "-y" | "--assume-yes" => {
-                    cmd.set_assume_yes(true);
+                    cmd.assume_yes = true;
                 },
                 "-x" | "--xbps-args" => reading_xbps_args = true,
                 "-a" | "--alias" => {
-                    alias_mode = true;
+                    cmd.use_alias_mode = true;
                     reading_xbps_args = true;
                 },
                 "-w" | "--wrapper" => {
-                    alias_mode = false;
+                    cmd.use_alias_mode = false;
                 },
                 _ => { cmd.add_xbps_arg(arg); },
             };
@@ -85,12 +85,4 @@ fn parse_args() -> InstallCommand {
             cmd.add_pkg(arg);
         }
     }
-
-    if alias_mode {
-        cmd.set_assume_yes(false);
-        cmd.set_initial_state(StyxState::AliasMode);
-        cmd.set_do_dry_run(false);
-    }
-
-    return cmd;
 }

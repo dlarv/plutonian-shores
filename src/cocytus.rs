@@ -75,7 +75,7 @@ fn parse_args() -> QueryCommand {
                 "-t" | "--tui" => cmd.set_display_mode(QueryDisplayMode::Tui),
                 "-a" | "--alias" => cmd.set_display_mode(QueryDisplayMode::AliasMode),
                 "-x" | "--xbps-args" => reading_xbps_args = true,
-                "-n" | "--do-dry-run" => cmd.set_do_dry_run(true),
+                "-n" | "--do-dry-run" => cmd.do_dry_run = true,
                 _ => { cmd.add_xbps_arg(arg); },
             };
         }

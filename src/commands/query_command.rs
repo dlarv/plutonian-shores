@@ -102,9 +102,6 @@ impl QueryCommand {
     }
 
     fn execute_alias_mode(&self) {
-        self.build_cmd()
-            .unchecked()
-            .run().unwrap();    
     }
 
     fn user_options(&self, offset: usize) -> String {
