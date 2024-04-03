@@ -17,14 +17,17 @@ serde_derive = "1.0.189"
 [[bin]]
 name = "styx"
 path = "src/styx.rs"
+version = "0.1.2"
 
 [[bin]]
 name = "lethe"
 path = "src/lethe.rs"
+version = "0.1.2"
 
 [[bin]]
 name = "cocytus"
 path = "src/cocytus.rs"
+version = "0.1.2"
 
 [lib]
 name = "help"
