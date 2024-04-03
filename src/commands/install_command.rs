@@ -1,5 +1,4 @@
-use std::{io::{BufReader, BufRead}, process::{Command, Stdio}};
-use duct::{cmd, Expression};
+use std::io::{BufReader, BufRead};
 use mythos_core::{printfatal, logger::get_logger_id, printerror, fatalmsg, printinfo};
 
 use crate::query_manager::{PackageSelector, PackageSelection};
@@ -15,9 +14,9 @@ impl InstallCommand {
             xbps_args: Vec::new(),
             pkgs: Vec::new(),
 
-            run_xbps_update: true,
-            run_sys_update: true,
-            run_pkg_install: true,
+            run_xbps_update: false,
+            run_sys_update: false,
+            run_pkg_install: false,
         };
     }
 
@@ -28,15 +27,13 @@ impl InstallCommand {
         }
 
         while self.is_executing() {
-            let cmd = self.build_cmd();
-
             if self.run_xbps_update {
                 self.try_execute_xbps_update();
             }
             else if self.run_sys_update {
                 self.try_execute_sys_update();
             }
-            else {
+            else if self.validate_pkgs() {
                 self.try_execute_install();
             }
         }
@@ -45,28 +42,6 @@ impl InstallCommand {
     }
 
     /* Helper methods */
-    fn validate(&mut self, cmd: Expression) -> bool {
-        let res = cmd
-            .stderr_to_stdout()
-            .stdout_capture()
-            .unchecked()
-            .read().expect(&fatalmsg!("Could not execute install command."));
-
-        if res.contains("The 'xbps' package must be updated")  {
-            self.run_sys_update = true;
-            self.run_xbps_update = true;
-            return false;
-        }
-        if res.contains("broken, unresolvable shlib") {
-            self.run_sys_update = true;
-            return false;
-        }
-        if res.starts_with("Package '") && res.ends_with("' not found in repository pool.") {
-            return false;
-        }
-        return true;
-    }
-
     fn execute_alias_mode(&mut self) {
         self.build_cmd().unchecked().run().unwrap();
     }
@@ -95,6 +70,7 @@ impl InstallCommand {
         // Update gives no output for dry runs
         if self.do_dry_run {
             printinfo!("Updated xbps.");
+            self.run_xbps_update = false;
             return;
         }
         get_user_permission(self.assume_yes, "Updating xbps");
@@ -106,6 +82,8 @@ impl InstallCommand {
         // Update gives no output for dry runs
         if self.do_dry_run {
             printinfo!("Updated system.");
+            self.run_sys_update = false;
+            self.run_xbps_update = false;
             return true;
         }
 
@@ -144,39 +122,70 @@ impl InstallCommand {
         return true;
     }
 
-    // Install pkgs 
-    // NOTE: assumes 'broken shlib' error is caught in validate_pkgs method. I'm not 100% sure if
-    // this is the case, it might need to be caught in this method.
     fn try_execute_install(&mut self) {
         if self.pkgs.len() == 0 {
+            self.run_pkg_install = false;
             return;
         }
+        get_user_permission(
+            self.assume_yes, 
+            &format!("The following packages will be installed:\n{pkgs}", pkgs=self.list_pkgs())
+        );
 
-        get_user_permission(self.assume_yes, &format!("The following packages will be installed:\n{pkgs}", pkgs=self.list_pkgs()));
+        self.build_cmd().unchecked().run().expect(&fatalmsg!("Could not run install command."));
+        self.run_pkg_install = false;
+    }
+    // returns true if system doesn't need updating.
+    fn validate_pkgs(&mut self) -> bool {
+        let mut require_update = false;
+        let mut bad_pkg_index: Vec<usize> = Vec::new();
 
-        let cmd = &mut self.build_install_cmd().unchecked();
-        cmd.run().expect(&fatalmsg!("Could not run install command."));
+        for (i, pkg) in self.pkgs.iter().enumerate() {
+            let res = cmd!("xbps-install", "-n", pkg)
+                .stderr_to_stdout()
+                .stdout_capture()
+                .unchecked()
+                .read().expect(&fatalmsg!("Could not execute install command."));
+
+            // System needs to be updated
+            if res.contains("broken, unresolvable shlib") {
+                require_update = true;
+                self.run_sys_update = true;
+                continue;
+            }
+            // XBPS must be updated
+            if res.contains("The 'xbps' package must be updated") {
+                require_update = true;
+                self.run_sys_update = true;
+                self.run_xbps_update = true;
+                break;
+            }
+            // Pkg must be replaced
+            if res.starts_with("Package '") && res.ends_with("' not found in repository pool.") {
+                bad_pkg_index.push(i);
+            }
+        }
+        // Fix & remove bad pkgs
+        bad_pkg_index.reverse();
+        for index in bad_pkg_index {
+            let pkg = self.pkgs[index].to_owned();
+            match self.fix_bad_pkg(&pkg) {
+                Ok(msg) => printinfo!("{msg}"), 
+                Err(msg) => printerror!("{msg}"),
+            }
+            self.pkgs.remove(index);
+        }
+        if require_update {
+            println!("System must be updated.");
+            return false;
+        }
+        return true;
     }
 
     fn is_executing(&self) -> bool {
         return self.run_xbps_update
-            && self.run_sys_update
-            && self.run_pkg_install;
-    }
-    fn build_install_cmd(&self) -> Expression {
-        let mut args: Vec<String> = Vec::new();
-        if self.do_sync_repos {
-            args.push("-S".into());
-        }
-        if self.assume_yes {
-            args.push("-y".into());
-        }
-        if self.do_dry_run {
-            args.push("-n".into());
-        }
-        args.extend(self.xbps_args.to_owned());
-        args.extend(self.pkgs.to_owned());
-        return cmd("xbps-install", args);
+            || self.run_sys_update
+            || self.run_pkg_install;
     }
 }
 
@@ -188,8 +197,12 @@ mod tests {
     pub fn test_validate_pkgs() {
         let mut cmd = InstallCommand::new();
         cmd.do_dry_run = true;
+        cmd.assume_yes = true;
+        cmd.run_sys_update = false;
+        cmd.run_xbps_update = false;
         cmd.add_pkgs(["firefox", "bledner", "feh"]);
+        let _ = cmd.build_cmd().run();
 
-        println!("{:?}", cmd.pkgs);
+        // println!("{:?}", cmd.pkgs);
     }
 }

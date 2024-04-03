@@ -85,4 +85,8 @@ fn parse_args(cmd: &mut InstallCommand) {
             cmd.add_pkg(arg);
         }
     }
+
+    if cmd.pkgs().len() > 0 {
+        cmd.run_pkg_install = true;
+    }
 }

@@ -83,8 +83,8 @@ pub enum QueryDisplayMode {
 pub struct QueryCommand {
     pkgs: Vec<Package>,
     xbps_args: Vec<String>,
-    display_mode: QueryDisplayMode,
-    do_dry_run: bool
+    pub display_mode: QueryDisplayMode,
+    pub do_dry_run: bool
 }
 /* IMPLEMENTATION */
 pub trait MythosCommand {
