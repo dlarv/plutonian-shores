@@ -3,7 +3,7 @@ pub mod commands;
 use crate::commands::{RemoveCommand, MythosCommand};
 use commands::remove_command;
 use help::print_help;
-use mythos_core::{conf, logger::{set_logger_id, get_logger_id}, printfatal};
+use mythos_core::{conf, logger::{set_logger_id}};
 
 fn main() {
     set_logger_id("LETHE");

@@ -1,4 +1,4 @@
-use mythos_core::{printerror, logger::get_logger_id, printinfo, fatalmsg, printfatal, cli::get_cli_input};
+use mythos_core::{logger::get_logger_id, printinfo, cli::get_cli_input};
 use duct::cmd;
 
 use crate::query_manager::{PackageSelector, Package, PackageSelection, QueryResults};

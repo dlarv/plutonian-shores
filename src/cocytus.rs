@@ -7,14 +7,14 @@
  */
 pub mod query_manager;
 pub mod commands;
-use duct;
+
 
 use help::print_help;
-use mythos_core::{conf, logger::{get_logger_id, set_logger_id}, printfatal};
+use mythos_core::{conf, logger::{set_logger_id}};
 use commands::{QueryDisplayMode, QueryCommand, MythosCommand};
-use query_manager::Package;
 
-use crate::query_manager::PackageSelector;
+
+
 
 static mut DISPLAY_MODE: QueryDisplayMode = QueryDisplayMode::Smart;
 fn main() {
