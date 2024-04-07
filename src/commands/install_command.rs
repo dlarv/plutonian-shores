@@ -88,6 +88,9 @@ impl InstallCommand {
         }
 
         get_user_permission(self.assume_yes, "Updating system");
+        // User consents in previous step.
+        self.assume_yes = true;
+
         let cmd = self.build_cmd()
             .stderr_to_stdout()
             .stdout_capture()
