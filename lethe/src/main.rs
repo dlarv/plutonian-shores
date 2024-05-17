@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     pub fn parse_config() {
-        std::env::set_var("MYTHOS_LOCAL_CONFIG_DIR", "tests/config");
+        std::env::set_var("MYTHOS_LOCAL_CONFIG_DIR", "../../tests/config");
         let conf = conf::MythosConfig::read_file("plutonian-shores").unwrap();
 
         unsafe {

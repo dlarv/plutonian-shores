@@ -1,0 +1,4 @@
+- [ ] Remake charon file
+- [ ] Remove use of global unsafe variables
+- [ ] Fix test environment
+- [ ] Create containerized test environment
