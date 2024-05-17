@@ -1,9 +1,29 @@
 use mythos_core::{logger::get_logger_id, printinfo, cli::get_cli_input};
-use duct::cmd;
+use duct::{cmd, Expression};
+use pt_core::{query_manager::{Package, PackageSelection, PackageSelector, QueryDisplayMode, QueryResults}, MythosCommand};
+#[derive(Debug)]
+pub struct QueryCommand {
+    pkgs: Vec<Package>,
+    xbps_args: Vec<String>,
+    pub display_mode: QueryDisplayMode,
+    pub do_dry_run: bool
+}
+impl MythosCommand for QueryCommand {
+    fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
+    fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn build_cmd(&self) -> Expression {
+        let mut args = Vec::new();
+        if !matches!(self.display_mode, QueryDisplayMode::AliasMode) {
+            args.push("-Rs".into());
+        }
 
-use crate::query_manager::{PackageSelector, Package, PackageSelection, QueryResults};
+        args.extend(self.xbps_args.to_owned());
+        args.extend(self.pkgs.to_owned());
+        return cmd("xbps-query", args);
+    }
+}
 
-use super::{QueryCommand, MythosCommand, QueryDisplayMode};
+
 
 impl QueryCommand {
     pub fn new() -> QueryCommand {
@@ -144,4 +164,5 @@ fn smart_query(pkg_name: &Package) -> Option<QueryResults> {
         None => return QueryResults::fuzzy_query(&pkg_name)
     };
 }
+
 

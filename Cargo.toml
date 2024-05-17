@@ -1,39 +1,8 @@
-[package]
-name = "plutonian-shores"
-version = "0.1.2"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-clap = "4.4.6"
-derive = "1.0.0"
-duct = "0.13.6"
-mythos-core = { version = "0.1.0", path = "../mythos-core" }
-rust-fuzzy-search = "0.1.1"
-serde = "1.0.189"
-serde_derive = "1.0.189"
-
-[[bin]]
-name = "styx"
-path = "src/styx.rs"
-
-[[bin]]
-name = "lethe"
-path = "src/lethe.rs"
-
-[[bin]]
-name = "cocytus"
-path = "src/cocytus.rs"
-
-[lib]
-name = "help"
-path = "src/help.rs"
-
-[package.metadata.cocytus]
-version = "0.1.2"
-[package.metadata.styx]
-version = "0.1.3"
-[package.metadata.lethe]
-version = "0.1.2"
-
+[workspace]
+resolver = "2"
+members = [
+	"styx",
+	"lethe",
+	"cocytus",
+	"pt_core",
+]

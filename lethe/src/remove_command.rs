@@ -1,8 +1,40 @@
-use crate::{query_manager::{PackageSelector, PackageSelection}, commands::*};
-use std::{process::{Command, Stdio}, io::Read};
-use duct::cmd;
-use mythos_core::{printfatal, logger::get_logger_id, fatalmsg, printwarn, printinfo, printerror};
+use std::{io::Read, process::{Command, Stdio}};
 
+use duct::{cmd, Expression};
+use mythos_core::{cli::get_cli_input, fatalmsg, logger::get_logger_id, printerror, printfatal, printinfo, printwarn};
+use pt_core::{get_user_permission, query_manager::{Package, PackageSelection, PackageSelector}, xbps_args_to_string, MythosCommand};
+
+
+#[derive(Debug)]
+pub struct RemoveCommand {
+    do_dry_run: bool,
+    assume_yes: bool,
+	xbps_args: Vec<String>,
+	pkgs: Vec<Package>,
+    remove_orphans: bool,
+    do_recursive: bool,
+    do_validate_pkgs: bool,
+    bad_pkg: Option<Package>,
+}
+impl MythosCommand for RemoveCommand {
+    fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
+    fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn build_cmd(&self) -> Expression {
+        let mut args: Vec<String> = Vec::new();
+        if self.do_dry_run {
+            args.push("-n".into());
+        }
+        if self.do_recursive {
+            args.push("-R".into());
+        }
+        if self.remove_orphans {
+            args.push("-o".into());
+        }
+        args.extend(self.xbps_args.to_owned());
+        args.extend(self.pkgs.to_owned());
+        return cmd("xbps-remove", args);
+    }
+}
 pub static mut DO_RECURSIVE: bool = false;
 pub static mut REMOVE_ORPHANS: bool = true;
 
@@ -133,3 +165,4 @@ mod tests {
         assert_eq!(cmd.bad_pkg, Some("blen".into()));
     }
 }
+

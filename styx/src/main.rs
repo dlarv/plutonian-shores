@@ -1,8 +1,8 @@
-pub mod query_manager;
-pub mod commands;
-use crate::commands::*;
+pub mod install_command;
+use install_command::InstallCommand;
+use pt_core::{help::print_help, query_manager};
 use mythos_core::{conf, logger::set_logger_id};
-use help::{self, print_help};
+use pt_core::{query_manager::QueryDisplayMode, MythosCommand};
 
 fn main() {
     set_logger_id("STYX");
@@ -90,3 +90,4 @@ fn parse_args(cmd: &mut InstallCommand) {
         cmd.run_pkg_install = true;
     }
 }
+

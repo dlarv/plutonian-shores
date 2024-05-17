@@ -1,9 +1,8 @@
-pub mod query_manager;
-pub mod commands;
-use crate::commands::{RemoveCommand, MythosCommand};
-use commands::remove_command;
-use help::print_help;
-use mythos_core::{conf, logger::{set_logger_id}};
+pub mod remove_command;
+use pt_core::{help::print_help, query_manager};
+use mythos_core::{conf, logger::set_logger_id};
+use pt_core::{query_manager::QueryDisplayMode, MythosCommand};
+use remove_command::RemoveCommand;
 
 fn main() {
     set_logger_id("LETHE");
@@ -79,7 +78,6 @@ fn parse_args() -> RemoveCommand {
 
 #[cfg(test)]
 mod tests {
-    use crate::commands::remove_command;
 
     use super::*;
 
@@ -99,3 +97,4 @@ mod tests {
 
     }
 }
+

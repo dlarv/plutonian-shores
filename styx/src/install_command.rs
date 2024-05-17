@@ -1,9 +1,56 @@
-use std::io::{BufReader, BufRead};
-use mythos_core::{printfatal, logger::get_logger_id, printerror, fatalmsg, printinfo};
+use std::{io::{BufRead, BufReader, Read}, process::{Command, Stdio}};
+use duct::{cmd, Expression};
+use mythos_core::{cli::get_cli_input, fatalmsg, logger::get_logger_id, printerror, printfatal, printinfo, printwarn};
+use pt_core::{get_user_permission, query_manager::{Package, PackageSelection, PackageSelector}, xbps_args_to_string, MythosCommand};
 
-use crate::query_manager::{PackageSelector, PackageSelection};
-use crate::commands::*;
 
+#[derive(Debug)]
+pub struct InstallCommand {
+    pub assume_yes: bool,
+    pub do_dry_run: bool,
+    pub do_sync_repos: bool,
+    pub use_alias_mode: bool,
+    pub run_xbps_update: bool,
+    pub run_sys_update: bool,
+    pub run_pkg_install: bool,
+	pkgs: Vec<Package>,
+    xbps_args: Vec<String>,
+} 
+impl MythosCommand for InstallCommand {
+    fn pkgs<'a>(&'a mut self) -> &'a mut Vec<Package> { return &mut self.pkgs; }
+    fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String> { return &mut self.xbps_args; }
+    fn build_cmd(&self) -> Expression {
+        // xbps => cmd -S[y][n]u xbps
+        // sys  => cmd -S[y][n]u 
+        // pkgs => cmd -[S][y][n] [pkgs]
+        let mut args: Vec<String> = Vec::new();
+
+        if self.do_sync_repos || self.run_sys_update {
+            // || self.run_xbps_update { <-- when run_xbps_update is set, so is run_sys_update
+            args.push("-S".into());
+        }
+        if self.assume_yes {
+            args.push("-y".into());
+        }
+        if self.do_dry_run {
+            args.push("-n".into());
+        }
+
+        args.extend(self.xbps_args.to_owned());
+
+        if self.run_sys_update {
+            args.push("-u".into());
+            if self.run_xbps_update {
+                args.push("xbps".into());
+            }
+        }
+        else {
+            args.extend(self.pkgs.to_owned());
+        }
+
+        return cmd("xbps-install", args);
+    }
+}
 impl InstallCommand {
     pub fn new() -> InstallCommand {
         return InstallCommand {
@@ -209,3 +256,4 @@ mod tests {
         // println!("{:?}", cmd.pkgs);
     }
 }
+

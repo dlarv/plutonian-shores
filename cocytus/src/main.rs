@@ -5,16 +5,11 @@
  *
  * No opts --> xbps-query -Rs pkg 
  */
-pub mod query_manager;
-pub mod commands;
-
-
-use help::print_help;
-use mythos_core::{conf, logger::{set_logger_id}};
-use commands::{QueryDisplayMode, QueryCommand, MythosCommand};
-
-
-
+use pt_core::{help::print_help, query_manager};
+use mythos_core::{conf, logger::set_logger_id};
+use pt_core::{query_manager::QueryDisplayMode, MythosCommand};
+use query_command::QueryCommand;
+pub mod query_command;
 
 static mut DISPLAY_MODE: QueryDisplayMode = QueryDisplayMode::Smart;
 fn main() {

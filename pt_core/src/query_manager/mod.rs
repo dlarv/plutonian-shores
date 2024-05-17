@@ -5,6 +5,14 @@ pub mod pkg_selector;
 pub type Package = String;
 
 #[derive(Debug)]
+pub enum QueryDisplayMode {
+    AliasMode,
+    List,
+    Tui,
+    Smart,
+}
+
+#[derive(Debug)]
 pub struct QueryResult {
     is_installed: bool,
     pkg_name: String,
@@ -29,3 +37,4 @@ pub enum PackageSelection {
     OtherOpt(usize),
     None
 }
+

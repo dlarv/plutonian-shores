@@ -248,3 +248,4 @@ mod tests {
         assert_eq!(p[0].pkg_name, "blender");
     } 
 }
+

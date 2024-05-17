@@ -4,7 +4,7 @@
  * Handle actions concerning fixing invalid packages in styx command
  */
 use mythos_core::{cli::get_cli_input, printinfo, logger::get_logger_id};
-use crate::{query_manager::*, commands::QueryDisplayMode};
+use crate::query_manager::*;
 
 const QUERY_SHORT_THRESHOLD: usize = 0;
 
@@ -169,3 +169,4 @@ mod tests {
         assert!(true);
     }
 }
+
