@@ -226,6 +226,7 @@ dependencies = [
  "rust-fuzzy-search",
  "serde",
  "serde_derive",
+ "toml",
 ]
 
 [[package]]

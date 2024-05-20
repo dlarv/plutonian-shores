@@ -13,4 +13,6 @@ duct = "0.13.6"
 rust-fuzzy-search = "0.1.1"
 serde = "1.0.189"
 serde_derive = "1.0.189"
+toml = "0.8.13"
+
 

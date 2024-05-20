@@ -2,6 +2,7 @@ use std::{fs, process::{Command, Stdio}};
 
 use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
 use rust_fuzzy_search::fuzzy_compare;
+use toml::Value;
 
 use crate::{Query, QueryError, QueryResult};
 
@@ -20,11 +21,19 @@ impl Query{
             return Ok(query);
         };
         if let Some(query) = Query::query_charon(search_term) {
-            return Ok(query);
+            return Ok(Query::from_query_result(query));
         };
         return match Query::query_tertiary(search_term) {
             Ok(pkg_manager) => Err(QueryError::TertiaryList(pkg_manager)),
             Err(msg) => Err(QueryError::NotFound(msg)),
+        };
+    }
+    pub fn from_query_result(res: QueryResult) -> Query {
+        let name = &res.pkg_name;
+        return Query {
+            pkg_name: name.to_owned(),
+            results: vec![res.clone()],
+            longest_name: name.len(),
         };
     }
 
@@ -48,26 +57,32 @@ impl Query{
         return Some(Query { results, longest_name, pkg_name: search_term.into() });
     }
 
-    pub fn query_charon(search_term: &str) -> Option<Query> {
+    pub fn query_charon(search_term: &str) -> Option<QueryResult> {
         //! Check if search term is contained inside of index.charon.
         let path = dirs::get_dir(dirs::MythosDir::Data, "charon/index.charon")?;
         let res = match fs::read_to_string(path) {
             Ok(res) => res,
             Err(_) => return None
         };
-        
-        if res.trim().split("\n").collect::<Vec<&str>>().contains(&search_term) {
-            return Some(Query { 
-                pkg_name: search_term.into(), 
-                results: vec![QueryResult { 
-                    is_installed: true, 
-                    pkg_name: todo!(), 
-                    pkg_version: todo!(), 
-                    pkg_description: todo!(), 
-                    score: todo!() }], 
-                longest_name: search_term.len() 
-            });
+
+        let table: Value = match toml::from_str(&res) {
+            Ok(table) => table,
+            Err(_) => return None,
+        };
+
+        // Get table value
+        if let Value::Table(table) = table {
+            if let Some(Value::Table(val)) = &table.get(search_term) {
+                return Some(QueryResult {
+                    is_installed: true,
+                    pkg_name: search_term.into(),
+                    pkg_version: if let Some(Value::String(val)) = val.get("version") { val.to_owned() } else { "".into() },
+                    pkg_description: if let Some(Value::String(val)) = val.get("description") { val.to_owned() } else { "".into() },
+                    score: 100,
+                });
+            }
         }
+
         return None;
     }
     pub fn query_tertiary(search_term: &str) -> Result<String, String> {
