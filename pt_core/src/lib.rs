@@ -3,6 +3,7 @@ pub mod query;
 
 use duct::{Expression, cmd};
 use mythos_core::{printfatal, logger::get_logger_id};
+use serde_derive::{Deserialize, Serialize};
 
 use std::io::{stdout, Write, stdin};
 
@@ -58,7 +59,7 @@ pub struct Query {
     longest_name: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct QueryResult {
     pub is_installed: bool,
     pub pkg_name: String,

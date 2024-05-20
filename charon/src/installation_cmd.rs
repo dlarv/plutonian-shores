@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use mythos_core::dirs;
+use pt_core::QueryResult;
 use toml::Value;
 
 /**
@@ -11,6 +12,12 @@ pub struct InstallationCmd {
     pub items: Vec<InstallItem>,
     pub mkdirs: Vec<PathBuf>,
     pub name: String,
+    /// Location to look for updates.
+    pub source: Option<String>,
+    /// Package version
+    pub version: Option<String>,
+    /// Package description
+    pub description: Option<String>,
 }
 
 /**
@@ -32,8 +39,6 @@ pub struct InstallItem {
     pub overwrite: bool,
     /// Comments made during installation process. Used for logging.
     pub comment: String,
-    /// Location to look for updates.
-    pub source: Option<String>,
 }
 
 impl InstallationCmd {
@@ -42,6 +47,10 @@ impl InstallationCmd {
             items: Vec::new(),
             mkdirs: Vec::new(),
             name: "".into(),
+            source: None,
+            version: None,
+            description: None,
+            
         };
     }
     pub fn set_name(&mut self, name: &str) {
@@ -56,7 +65,6 @@ impl InstallationCmd {
             alias: None,
             overwrite: true,
             comment: "".into(),
-            source: None,
         };
         let table = match val {
             Value::String(v) => {
@@ -91,9 +99,6 @@ impl InstallationCmd {
         if let Some(Value::String(val)) = table.get("comment") {
             cmd.comment = val.to_owned();
         }
-        if let Some(Value::String(val)) = table.get("source") {
-            cmd.source = Some(val.to_owned());
-        }
         // alias >> strip_ext >> dest >> target_file_name
         if let Some(alias) = &cmd.alias {
             cmd.dest.push(alias)
@@ -119,6 +124,20 @@ impl InstallationCmd {
             return Some(path);
         }
         return None;
+    }
+    pub fn to_toml_str(&self) -> String {
+        let mut output = format!("{} = {{", self.name);
+        if let Some(val) = &self.version {
+            output += &format!("version = {val}, ");
+        }
+        if let Some(val) = &self.description{
+            output += &format!("description= {val}, ");
+        }
+        if let Some(val) = &self.source {
+            output += &format!("source = {val}, ");
+        }
+        output += "}";
+        return output;
     }
 }
 

@@ -1,6 +1,6 @@
-use std::process::{Command, Stdio};
+use std::{fs, process::{Command, Stdio}};
 
-use mythos_core::{cli::get_cli_input, fatalmsg, logger::get_logger_id};
+use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
 use rust_fuzzy_search::fuzzy_compare;
 
 use crate::{Query, QueryError, QueryResult};
@@ -49,6 +49,25 @@ impl Query{
     }
 
     pub fn query_charon(search_term: &str) -> Option<Query> {
+        //! Check if search term is contained inside of index.charon.
+        let path = dirs::get_dir(dirs::MythosDir::Data, "charon/index.charon")?;
+        let res = match fs::read_to_string(path) {
+            Ok(res) => res,
+            Err(_) => return None
+        };
+        
+        if res.trim().split("\n").collect::<Vec<&str>>().contains(&search_term) {
+            return Some(Query { 
+                pkg_name: search_term.into(), 
+                results: vec![QueryResult { 
+                    is_installed: true, 
+                    pkg_name: todo!(), 
+                    pkg_version: todo!(), 
+                    pkg_description: todo!(), 
+                    score: todo!() }], 
+                longest_name: search_term.len() 
+            });
+        }
         return None;
     }
     pub fn query_tertiary(search_term: &str) -> Result<String, String> {
@@ -243,8 +262,14 @@ mod tests {
     #[test]
     fn test_xbps_query() {
         let res = Query::query_xbps("blender").unwrap();
-        println!("{:?}", res);
         assert_eq!(res.results[0].pkg_name, "blender");
+    }
+    #[test]
+    fn test_charon_query() {
+        let res = Query::query_charon("charon");
+        assert_eq!("charon", res.unwrap().pkg_name);
+        let res2 = Query::query_charon("hello");
+        assert!(matches!(res2, None));
     }
     // #[test]
     fn test_selection() {

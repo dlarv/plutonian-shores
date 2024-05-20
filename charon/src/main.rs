@@ -29,35 +29,19 @@ fn main() {
     // List of all files installed for this util.
     let new_charon_file = install(&installation_cmd, do_dry_run);
 
-    // Modify index.charon file
-    if let Some(mut index) = read_charon_file("index") {
-        if !index.contains(&installation_cmd.name) {
-            index.push(installation_cmd.name.to_owned());
-            write_charon_file("index", index, do_dry_run);
-        }
-    }
+    modify_index(&installation_cmd, do_dry_run);
 
     // Read old charon file into memory.
     let old_charon_file = read_charon_file(&installation_cmd.name);
 
     // If file is in old && not in new --> remove
-    if let Some(mut old_files) = old_charon_file {
-        old_files.retain(|x| !new_charon_file.contains(x));
-        for file in old_files {
-            if file.starts_with("#") {
-                continue;
-            }
-            let path = PathBuf::from(file);
-            if !do_dry_run && path.exists() {
-                let _ = fs::remove_file(path);
-            }
-        }
-    }
+    remove_orphan(old_charon_file, &new_charon_file, do_dry_run);
     // Overwrite util.charon file.
     write_charon_file(&installation_cmd.name, new_charon_file, do_dry_run);
 }
 
 fn guided_install() -> Option<InstallationCmd> {
+    //! Install program using guided input from user.
     let cmd = InstallationCmd::new();
 
     // Get mkdirs
@@ -68,8 +52,8 @@ fn guided_install() -> Option<InstallationCmd> {
     todo!();
     // return Some(cmd);
 }
-
 fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
+    //! Install program using a .charon file.
     let table;
 
     if let Ok(file) = fs::read_to_string(&path) {
@@ -107,8 +91,8 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
     }
     return Some(cmd);
 }
-
 fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<String> {
+    //! Run installation using an installation cmd.
     let mut new_charon_file = Vec::new();
     for item in &installation_cmd.items {
         let mut comments = vec!["#"];
@@ -134,7 +118,43 @@ fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<String> 
     }
     return new_charon_file;
 }
+fn remove_orphan(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<String>, do_dry_run: bool) {
+    //! Remove deprecated files installed in previous versions.
+    if let Some(mut old_files) = old_charon_file {
+        old_files.retain(|x| !new_charon_file.contains(x));
+        for file in old_files {
+            if file.starts_with("#") {
+                continue;
+            }
+            let path = PathBuf::from(file);
+            if !do_dry_run && path.exists() {
+                let _ = fs::remove_file(path);
+            }
+        }
+    }
+}
+fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
+    //! Modify index.charon file
+    if do_dry_run {
+        return;
+    }
+
+    // Saves data as a entry in a toml file.
+    // This file can be read directly into a pt_core::QueryResult
+    // name, version, description, source
+
+    if let Some(mut index) = read_charon_file("index") {
+        if !index.contains(&cmd.name) {
+            index.push(cmd.to_toml_str().to_owned());
+            write_charon_file("index", index, do_dry_run);
+        }
+
+    } else {
+        write_charon_file("index", vec![cmd.to_toml_str().to_owned()], do_dry_run);
+    }
+}
 fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
+    //! Read file inside $MYTHOS_DATA_DIR/$util_name.charon
     let mut path = match dirs::get_dir(dirs::MythosDir::Data, util_name) {
         Some(path) => path,
         None => return None
@@ -153,6 +173,7 @@ fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
     return Some(contents);
 }
 fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
+    //! Write file to $MYTHOS_DATA_DIR/$util_name.charon
     let mut path = match dirs::get_dir(dirs::MythosDir::Data, "charon") {
         Some(path) => path,
         None => return 
@@ -163,7 +184,6 @@ fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
         ""
     }.to_owned() + ".charon";
 
-    println!("Path: {:?}", path);
     path.push(util_name.to_owned() + &extension);
     let contents = data.join("\n");
     fs::write(path, contents).unwrap();
@@ -190,7 +210,6 @@ mod test {
         path.push("test.txt");
         assert_eq!(val.items[0].dest, path);
     }
-
     #[test]
     fn test_install() {
         let cmd = auto_install("data/charon.toml".into()).unwrap();
