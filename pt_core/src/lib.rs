@@ -1,11 +1,9 @@
 pub mod help;
-pub mod query_manager;
+pub mod query;
 
 use duct::{Expression, cmd};
 use mythos_core::{printfatal, logger::get_logger_id};
-use query_manager::QueryDisplayMode;
 
-use crate::query_manager::Package;
 use std::io::{stdout, Write, stdin};
 
 /* FUNCTIONS */

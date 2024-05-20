@@ -52,6 +52,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "charon"
+version = "0.2.0"
+dependencies = [
+ "duct",
+ "glob",
+ "mythos-core",
+ "pt_core",
+ "serde",
+ "serde_derive",
+ "toml",
+]
+
+[[package]]
 name = "clap"
 version = "4.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

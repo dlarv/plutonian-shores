@@ -4,5 +4,6 @@ members = [
 	"styx",
 	"lethe",
 	"cocytus",
-	"pt_core",
+	"pt_core", 
+	"charon",
 ]
