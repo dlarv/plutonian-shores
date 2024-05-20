@@ -1,0 +1,3 @@
+# List of utils installed using charon.
+# Newline separated list of util names.
+# Files installed for these utils are saved inside separate .charon files.

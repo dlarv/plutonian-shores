@@ -49,8 +49,38 @@ pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
     });
 }
 
+/* STRUCTS */
+/**
+ * Public interface to results of query.
+ */
+#[derive(Debug, Clone)]
+pub struct Query {
+    pkg_name: String,
+    results: Vec<QueryResult>,
+    longest_name: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct QueryResult {
+    pub is_installed: bool,
+    pub pkg_name: String,
+    pub pkg_version: String,
+    pub pkg_description: String,
+    pub score: i32,
+}
+/**
+ * TertiaryList: Package was found in tertiary list and can be installed using the contained pkg
+ * manager.
+ * NotFound: No packages were found that matched the search.
+ */
+pub enum QueryError{
+    TertiaryList(String),
+    NotFound(String),
+}
+
+// Deprecating
 pub trait MythosCommand {
-    fn pkgs<'a> (&'a mut self) -> &'a mut Vec<Package>;
+    fn pkgs<'a> (&'a mut self) -> &'a mut Vec<String>;
     fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String>;
     fn build_cmd(&self) -> Expression;
 
@@ -74,4 +104,3 @@ pub trait MythosCommand {
         return self.pkgs().iter().map(|x| format!("{}\n", x)).collect();
     }
 }
-
