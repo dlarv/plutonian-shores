@@ -133,10 +133,12 @@ impl InstallationCmd {
         if let Some(val) = &self.description{
             output += &format!("description= {val}, ");
         }
-        if let Some(val) = &self.source {
-            output += &format!("source = {val}, ");
-        }
-        output += "}";
+        let src = if let Some(val) = &self.source {
+            val
+        } else {
+            "charon"
+        };
+        output += &format!("source = {src} }}");
         return output;
     }
 }
