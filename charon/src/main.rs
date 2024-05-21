@@ -9,7 +9,7 @@ mod installation_cmd;
 use std::{fs::{self, Permissions}, os::unix::fs::PermissionsExt, path::PathBuf};
 
 use installation_cmd::InstallationCmd;
-use mythos_core::{cli::clean_cli_args, dirs, logger::{get_logger_id, set_logger_id}, printwarn};
+use mythos_core::{cli::clean_cli_args, dirs, logger::{get_logger_id, set_logger_id}, printinfo, printwarn};
 use toml::Value;
 
 fn main() {
@@ -28,14 +28,13 @@ fn main() {
 
     // List of all files installed for this util.
     let new_charon_file = install(&installation_cmd, do_dry_run);
-
     modify_index(&installation_cmd, do_dry_run);
 
     // Read old charon file into memory.
     let old_charon_file = read_charon_file(&installation_cmd.name);
 
     // If file is in old && not in new --> remove
-    remove_orphan(old_charon_file, &new_charon_file, do_dry_run);
+    remove_orphans(old_charon_file, &new_charon_file, do_dry_run);
     // Overwrite util.charon file.
     write_charon_file(&installation_cmd.name, new_charon_file, do_dry_run);
 }
@@ -108,27 +107,32 @@ fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<String> 
         }
         if !do_dry_run && item.overwrite {
             match fs::copy(&item.target, &item.dest) {
-                Ok(_) => (),
+                Ok(_) => comments.push("Successfully installed"),
                 Err(_) => comments.push("Error, could not copy file"),
             }
             item.dest.metadata().unwrap().permissions().set_mode(item.perms);
         }
-        new_charon_file.push(comments.join("; "));
-        println!("Installed: {:?} to {:?}", item.target, item.dest);
+        let comment = comments.join("; ");
+        printinfo!("{}", comment);
+        new_charon_file.push(comment);
     }
     return new_charon_file;
 }
-fn remove_orphan(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<String>, do_dry_run: bool) {
+fn remove_orphans(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<String>, do_dry_run: bool) {
     //! Remove deprecated files installed in previous versions.
     if let Some(mut old_files) = old_charon_file {
         old_files.retain(|x| !new_charon_file.contains(x));
         for file in old_files {
+            // Skip comments
             if file.starts_with("#") {
                 continue;
             }
             let path = PathBuf::from(file);
             if !do_dry_run && path.exists() {
-                let _ = fs::remove_file(path);
+                match fs::remove_file(&path) {
+                    Ok(_) => printinfo!("Removed: {path:?}"),
+                    Err(msg) => printwarn!("{msg:?}")
+                }
             }
         }
     }
