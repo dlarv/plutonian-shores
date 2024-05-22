@@ -1,4 +1,4 @@
-use std::{fs, process::{Command, Stdio}};
+use std::{fs, num, process::{Command, Stdio}};
 
 use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
 use rust_fuzzy_search::fuzzy_compare;
@@ -10,7 +10,7 @@ use crate::{Query, QueryError, QueryResult};
 const THRESHOLD: f32 = 0.3;
 
 impl Query{
-    pub fn new(search_term: &str) -> Result<Query, QueryError> {
+    pub fn query(search_term: &str) -> Result<Query, QueryError> {
         /*!
             * Find packages that match search_term.
             * Tries to find package using xrs.
@@ -23,10 +23,7 @@ impl Query{
         if let Some(query) = Query::query_charon(search_term) {
             return Ok(Query::from_query_result(query));
         };
-        return match Query::query_tertiary(search_term) {
-            Ok(pkg_manager) => Err(QueryError::TertiaryList(pkg_manager)),
-            Err(msg) => Err(QueryError::NotFound(msg)),
-        };
+        return Err(QueryError::NotFound(format!("Package not found: '{search_term}'")));
     }
     pub fn from_query_result(res: QueryResult) -> Query {
         let name = &res.pkg_name;
@@ -85,9 +82,6 @@ impl Query{
 
         return None;
     }
-    pub fn query_tertiary(search_term: &str) -> Result<String, String> {
-        return Err("".into());
-    }
 
     pub fn select_from_results(&self) -> Query {
         /*!
@@ -116,11 +110,41 @@ impl Query{
             };
         }
     }
-    pub fn select_replacement_pkg(&mut self, pkg: &str) {
-        //! Allow user to replace selected pkg with a different pkg.
-        todo!()
+    pub fn replace_package(&mut self) {
+        /*!
+         * 
+        */
     }
+    pub fn get_short_list(&self) -> String {
+        /*!
+         * Display list of results in separate columns.
+         * Columns = termsize.width / (self.longest_name + id), where id = '1. ', '01. ', etc.
+        */
+        let mut output = String::new();
 
+        let num_digits = self.results.len() / 10;
+        let columns = match termsize::get() {
+            // Index of number + padding zeros + '.' + ' ' + longest_name + ' '
+            Some(size) =>  size.cols / (self.longest_name + num_digits + 2) as u16,
+            None => 1
+        };
+
+        let mut row_counter = 1;
+        let longest_name = self.longest_name;
+        for (i, res) in self.results.iter().enumerate() {
+            // Current index of number + padding zeros + '.' + name + ' '
+            output += &format!("{i:0$}. {name: <longest_name$}", num_digits, name = res.pkg_name); 
+
+            // Loop down to next row
+            if row_counter % columns == 0 {
+                output += "\n";
+                row_counter = 1;
+            } else {
+                row_counter += 1;
+            }
+        }
+        return output;
+    }
     fn build_msg(&self) -> String {
         let mut menu : String = String::new();
         let col_count: usize = 20;
@@ -291,5 +315,11 @@ mod tests {
         let res = Query::query_xbps("blen").unwrap();
         let output = res.select_from_results();
         println!("{:?}", output);
+    }
+    // #[test]
+    fn test_short_display_list() {
+        let res = Query::query_xbps("bl").unwrap();
+        let output = res.get_short_list();
+        println!("{output}");
     }
 }

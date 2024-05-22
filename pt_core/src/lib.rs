@@ -1,5 +1,6 @@
 pub mod help;
 pub mod query;
+pub mod query_result;
 
 use duct::{Expression, cmd};
 use mythos_core::{printfatal, logger::get_logger_id};
@@ -72,6 +73,7 @@ pub struct QueryResult {
  * manager.
  * NotFound: No packages were found that matched the search.
  */
+#[derive(Debug)]
 pub enum QueryError{
     TertiaryList(String),
     NotFound(String),
