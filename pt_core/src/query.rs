@@ -323,6 +323,15 @@ impl From<Vec<QueryResult>> for Query {
         };
     }
 }
+impl IntoIterator for Query {
+    type Item = QueryResult;
+
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        return self.results.into_iter();
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::*;
