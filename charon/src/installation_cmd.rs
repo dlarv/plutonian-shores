@@ -128,17 +128,17 @@ impl InstallationCmd {
     pub fn to_toml_str(&self) -> String {
         let mut output = format!("{} = {{", self.name);
         if let Some(val) = &self.version {
-            output += &format!("version = {val}, ");
+            output += &format!("version = \"{val}\", ");
         }
         if let Some(val) = &self.description{
-            output += &format!("description= {val}, ");
+            output += &format!("description= \"{val}\", ");
         }
         let src = if let Some(val) = &self.source {
             val
         } else {
-            "charon"
+            "\"charon\""
         };
-        output += &format!("source = {src} }}");
+        output += &format!("source = \"{src}\" }}");
         return output;
     }
 }
@@ -146,9 +146,6 @@ impl InstallationCmd {
 impl InstallItem {
     pub fn print_dest(&self) -> String {
         return self.dest.to_string_lossy().to_string();
-    }
-    pub fn print_comment(&self) -> String {
-        return self.comment.to_string();
     }
 }
 

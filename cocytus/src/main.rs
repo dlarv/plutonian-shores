@@ -1,83 +1,131 @@
 /*!
- * Fuzzy find
- * Show query results
- * Allow user to run install/remove/exit
- *
- * No opts --> xbps-query -Rs pkg 
+ * CLI interface to the query functionality in pt_core.
+ * Essentially, this acts as a wrapper for xbps-query -Rs 
+ * Allows user to select from results and pipe them to lethe or styx.
+ * Pipe selection to xbps-query -S to see detail info.
  */
-use pt_core::{help::print_help, query_manager};
-use mythos_core::{conf, logger::set_logger_id};
-use pt_core::{query_manager::QueryDisplayMode, MythosCommand};
-use query_command::QueryCommand;
-pub mod query_command;
-
-static mut DISPLAY_MODE: QueryDisplayMode = QueryDisplayMode::Smart;
+use mythos_core::{cli::{clean_cli_args, get_cli_input}, logger::{get_logger_id, set_logger_id}, printinfo, printwarn};
+use pt_core::{Query, QueryError, QueryResult};
 fn main() {
     set_logger_id("COCYTUS");
-    unsafe { 
-        if let Some(conf) = conf::MythosConfig::read_file("plutonian-shores") {
-            load_config_values(conf);
-        }
-    }
-    let mut cmd = parse_args();
-    cmd.execute();
-}
+    let args = clean_cli_args();
+    let mut pkgs: Vec<&str> = Vec::new();
+    let mut opts: Vec<&str> = Vec::new();
 
-unsafe fn load_config_values(conf: conf::MythosConfig) {
-    if conf.try_get_boolean("use_alias_mode").is_some() {
-        DISPLAY_MODE = QueryDisplayMode::AliasMode;
-    }
-    if let Some(conf) = conf.get_subsection("cocytus") { 
-        if let Some(val) = conf.try_get_float("fuzzy_find_threshold") {
-            query_manager::query_results::THRESHOLD = val as f32;
-        }
-
-        if let Some(val) = conf.try_get_integer("list_column_length") {
-            query_manager::query_results::LIST_COLUMN_LEN = val as usize;
-        }
-
-        if conf.try_get_boolean("use_alias_mode").is_some() {
-            DISPLAY_MODE = QueryDisplayMode::AliasMode;
-        }
-
-        if let Some(val) = conf.try_get_string("default_display_mode") {
-            match val.to_lowercase().as_str() {
-                "list" => DISPLAY_MODE = QueryDisplayMode::List,
-                "tui" => DISPLAY_MODE = QueryDisplayMode::Tui,
-                "alias" => DISPLAY_MODE = QueryDisplayMode::AliasMode,
-                "smart" => DISPLAY_MODE = QueryDisplayMode::Smart,
-                _ => ()
-            }
-        }
-    }
-}
-fn parse_args() -> QueryCommand {
-    let mut cmd = QueryCommand::new();
-    let mut reading_xbps_args = false;
-
-    for arg in mythos_core::cli::clean_cli_args() {
+    // Parse opts.
+    for arg in &args {
         if arg.starts_with("-") {
-            if reading_xbps_args {
-                cmd.add_xbps_arg(arg);
+            opts.push(&arg);
+        } else {
+            pkgs.push(&arg);
+        }
+    }
+
+    let validated_pkgs = Query::from(match validate_pkgs(pkgs) {
+        Some(pkgs) => pkgs,
+        None => {
+            printinfo!("Exiting");
+            return;
+        }
+    });
+
+    println!("\nSelected packages:\n{:?}\n", validated_pkgs.get_short_list());
+
+    match get_user_selection(&format!("0. Exit\n1. Pipe results to Styx\n2. Pipe results to Lethe\nOption: "), 2) {
+        0 => return,
+        1 => pipe_to_styx(validated_pkgs),
+        2 => pipe_to_lethe(validated_pkgs),
+        _ => panic!("User input should have been evaluated earlier")
+    };
+}
+
+fn validate_pkgs(search_terms: Vec<&str>) -> Option<Vec<QueryResult>> {
+    /*!
+     * Iterate over pkgs, searching for each one in repo. 
+     * Allows user to select from results or remove it.
+     * User also has opportunity to exit.
+     * Returns None if all packages are removed or user exits.
+     */
+    let mut output: Vec<QueryResult> = Vec::new();
+
+    for term in search_terms {
+        let query = match Query::query(&term) {
+            Ok(res) => res,
+            Err(QueryError::NotFound(msg)) | Err(QueryError::TertiaryList(msg)) => {
+                printwarn!("{msg}");
                 continue;
             }
-            match arg.as_str() {
-                "-h" | "--help" => {
-                    print_help();
-                    std::process::exit(0);
-                },
-                "-l" | "--list" => cmd.set_display_mode(QueryDisplayMode::List),
-                "-t" | "--tui" => cmd.set_display_mode(QueryDisplayMode::Tui),
-                "-a" | "--alias" => cmd.set_display_mode(QueryDisplayMode::AliasMode),
-                "-x" | "--xbps-args" => reading_xbps_args = true,
-                "-n" | "--do-dry-run" => cmd.do_dry_run = true,
-                _ => { cmd.add_xbps_arg(arg); },
-            };
+        };
+        // No results, exit early.
+        if query.len() == 0 {
+            printwarn!("No results found for {term}");
+            continue;
         }
-        else {
-            cmd.add_pkg(arg);
+
+        let msg = &format!("{}\n0. Exit\n1. Select from result(s)\n2. Remove query\nOption: ", query.get_short_list());
+
+        // Get and validate user selection.
+        let user_input = get_user_selection(msg, 2);
+        if user_input == 0 {
+            return None;
         }
+        if user_input == 2 {
+            printinfo!("Removed {term}");
+            continue;
+        }
+
+
+        // User chose to select from query results.
+        // If only one pkg exists, use it.
+        if query.len() == 1 {
+            output.push(query.get(0).unwrap().clone());
+            continue;
+        }
+        // Display results
+        let msg = query.get_short_list();
+        let selected_pkg_index = get_user_selection(&format!("{msg}\n0. Remove package\nEnter from the options above: "), query.len());
+
+        // User chose to remove package.
+        if selected_pkg_index == 0 {
+            printinfo!("Removed {term}");
+            continue;
+        }
+        // Add pkg
+        println!("Selected: {selected_pkg_index}");
+        output.push(query.get(selected_pkg_index - 1).unwrap().clone());
     }
 
-    return cmd;
+    return Some(output);
+}
+fn get_user_selection(msg: &str, max_val: usize) -> usize {
+    /*!
+     * Prints a msg to the console prompting the user for input.
+     * Validates input. Input must be an integer [0,max_val].
+     * Returns that value
+     */ 
+    loop {
+        let input = match get_cli_input(msg).parse::<usize>() {
+            Ok(input) => input,
+            Err(_) => {
+                printwarn!("Please enter a valid number from the options above");
+                continue;
+            }
+        };
+        if input <= max_val {
+            return input;
+        }
+        printwarn!("Please enter a valid number from the options above");
+    }
+}
+
+fn pipe_to_styx(pkgs: Query) {
+    printinfo!("Piped to styx");
+}
+fn pipe_to_lethe(pkgs:Query) {
+    printinfo!("Piped to lethe");
+}
+
+
+#[cfg(test)]
+mod tests {
 }

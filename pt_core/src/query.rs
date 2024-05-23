@@ -1,4 +1,4 @@
-use std::{fs, num, process::{Command, Stdio}};
+use std::{fs, process::{Command, Stdio}};
 
 use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
 use rust_fuzzy_search::fuzzy_compare;
@@ -21,17 +21,19 @@ impl Query{
             return Ok(query);
         };
         if let Some(query) = Query::query_charon(search_term) {
-            return Ok(Query::from_query_result(query));
+            return Ok(Query::from(query));
         };
         return Err(QueryError::NotFound(format!("Package not found: '{search_term}'")));
     }
-    pub fn from_query_result(res: QueryResult) -> Query {
-        let name = &res.pkg_name;
-        return Query {
-            pkg_name: name.to_owned(),
-            results: vec![res.clone()],
-            longest_name: name.len(),
-        };
+
+    pub fn len(&self) -> usize {
+        return self.results.len();
+    }
+    pub fn get<'a>(&'a self, index: usize) -> Option<&'a QueryResult> {
+        if index >= self.results.len() {
+            return None;
+        }
+        return Some(&self.results[index]);
     }
 
     pub fn query_xbps(search_term: &str) -> Option<Query> {
@@ -133,7 +135,7 @@ impl Query{
         let longest_name = self.longest_name;
         for (i, res) in self.results.iter().enumerate() {
             // Current index of number + padding zeros + '.' + name + ' '
-            output += &format!("{i:0$}. {name: <longest_name$}", num_digits, name = res.pkg_name); 
+            output += &format!("{id:0$}. {name: <longest_name$}", num_digits, id = i + 1, name = res.pkg_name); 
 
             // Loop down to next row
             if row_counter % columns == 0 {
@@ -293,6 +295,33 @@ fn read_multiple_index(input: &str, query: &Vec<QueryResult>) -> Option<(Vec<Que
         }
     }
     return Some((pkgs, longest_name));
+}
+impl From<QueryResult> for Query {
+    fn from(value: QueryResult) -> Self {
+        let name = &value.pkg_name;
+        return Query {
+            pkg_name: name.to_owned(),
+            results: vec![value.clone()],
+            longest_name: name.len(),
+        };
+    }
+}
+impl From<Vec<QueryResult>> for Query {
+    fn from(value: Vec<QueryResult>) -> Self {
+        let longest_name: usize = value.iter().reduce(|acc, x| { 
+            if x.pkg_name.len() > acc.pkg_name.len() { 
+                x 
+            } else { 
+                acc 
+            }
+        }).unwrap().pkg_name.len();
+
+        return Query {
+            pkg_name: "".into(),
+            results: value,
+            longest_name,
+        };
+    }
 }
 #[cfg(test)]
 mod tests {
