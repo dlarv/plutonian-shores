@@ -9,7 +9,6 @@
  * - Show details can display description etc contained inside QueryResult
  * - Show details interface allows user to skip between info
  */
-use std::process::Command;
 
 use duct::cmd;
 use mythos_core::{cli::{clean_cli_args, get_cli_input}, logger::{get_logger_id, set_logger_id}, printinfo, printwarn};
@@ -141,9 +140,4 @@ fn pipe_to_styx(pkgs: Query) {
 }
 fn pipe_to_lethe(pkgs:Query) {
     printinfo!("Piped to lethe");
-}
-
-
-#[cfg(test)]
-mod tests {
 }
