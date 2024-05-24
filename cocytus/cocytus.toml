@@ -1,0 +1,3 @@
+bin = [
+	{ target = "../target/debug/cocytus", alias = "cocytus", perms = 0x755 },
+]
