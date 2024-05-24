@@ -135,7 +135,7 @@ impl Query{
         let longest_name = self.longest_name;
         for (i, res) in self.results.iter().enumerate() {
             // Current index of number + padding zeros + '.' + name + ' '
-            output += &format!("{id:0$}. {name: <longest_name$}", num_digits, id = i + 1, name = res.pkg_name); 
+            output += &format!("{id:0$}. {name: <longest_name$} ", num_digits, id = i + 1, name = res.pkg_name); 
 
             // Loop down to next row
             if row_counter % columns == 0 {
@@ -308,13 +308,17 @@ impl From<QueryResult> for Query {
 }
 impl From<Vec<QueryResult>> for Query {
     fn from(value: Vec<QueryResult>) -> Self {
-        let longest_name: usize = value.iter().reduce(|acc, x| { 
-            if x.pkg_name.len() > acc.pkg_name.len() { 
-                x 
-            } else { 
-                acc 
-            }
-        }).unwrap().pkg_name.len();
+        let longest_name: usize = if value.len() > 0 {
+            value.iter().reduce(|acc, x| { 
+                if x.pkg_name.len() > acc.pkg_name.len() { 
+                    x 
+                } else { 
+                    acc 
+                }
+            }).unwrap().pkg_name.len()
+        } else {
+            0
+        };
 
         return Query {
             pkg_name: "".into(),

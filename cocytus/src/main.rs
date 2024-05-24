@@ -28,7 +28,7 @@ fn main() {
         }
     }
 
-    let validated_pkgs = Query::from(match validate_pkgs(pkgs) {
+    let validated_pkgs = Query::from(match validate_pkgs(pkgs.iter()) {
         Some(pkgs) => pkgs,
         None => {
             printinfo!("Exiting");
