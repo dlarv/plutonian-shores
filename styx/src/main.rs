@@ -1,93 +1,123 @@
-pub mod install_command;
-use install_command::InstallCommand;
-use pt_core::{help::print_help, query_manager};
-use mythos_core::{conf, logger::set_logger_id};
-use pt_core::{query_manager::QueryDisplayMode, MythosCommand};
+use std::io::{BufRead, BufReader};
 
+use duct::cmd;
+use mythos_core::{cli::clean_cli_args, printerror, logger::*};
+use pt_core::{get_user_permission, validate_pkgs, Query};
+enum StartState {
+    Install,
+    SysUpdate,
+    XbpsUpdate,
+}
 fn main() {
-    set_logger_id("STYX");
+    // let args = std::env::args().skip(1);
+    let args = clean_cli_args();
+    let mut pkgs: Vec<&str> = Vec::new();
+    let mut starting_state = StartState::Install;
+    let mut do_dry_run = false;
 
-    let mut cmd = InstallCommand::new();
-
-    unsafe {
-        if let Some(conf) = conf::MythosConfig::read_file("plutonian-shores") {
-            load_config_values(&mut cmd, conf);
+    for arg in &args {
+        if arg == "-h" || arg == "--help" {
+            todo!();
+        } else if arg == "-u" || arg == "--update" {
+            starting_state = StartState::SysUpdate;
+        } else if arg == "-x" || arg == "--xbps-update" {
+            starting_state = StartState::XbpsUpdate;
+        } else if arg == "-n" || arg == "--dryrun" { 
+            do_dry_run = true;
+        }else if arg.starts_with("-") {
+            printerror!("Unknown arg: {arg}");
+        } else {
+            pkgs.push(arg);
         }
     }
-    
-    parse_args(&mut cmd);
-    cmd.execute();
-}
 
-unsafe fn load_config_values(cmd: &mut InstallCommand, conf: conf::MythosConfig) {
-    if let Some(val) = conf.try_get_boolean("use_alias_mode") {
-        cmd.use_alias_mode = val;
-    }
-    if let Some(conf) = conf.get_subsection("cocytus") { 
-        if let Some(val) = conf.try_get_float("fuzzy_find_threshold") {
-            query_manager::query_results::THRESHOLD = val as f32;
-        }
-
-        if let Some(val) = conf.try_get_integer("list_column_length") {
-            query_manager::query_results::LIST_COLUMN_LEN = val as usize;
-        }
-    }
-    if let Some(conf) = conf.get_subsection("styx") {
-        if let Some(val) = conf.try_get_boolean("do_sync") {
-            cmd.do_sync_repos = val;
-        }
-        if let Some(val) = conf.try_get_boolean("use_alias_mode") {
-            cmd.use_alias_mode = val;
-        }
-    }
-}
-
-fn parse_args(cmd: &mut InstallCommand) {
-    let args = mythos_core::cli::clean_cli_args();
-    let mut reading_xbps_args = false;
-
-    for arg in args {
-        if arg.starts_with("-") {
-            if reading_xbps_args {
-                cmd.add_xbps_arg(arg);
-                continue;
+    let res = match starting_state {
+        StartState::Install => install_pkgs(pkgs, do_dry_run, false),
+        StartState::SysUpdate => sys_update(false),
+        StartState::XbpsUpdate => {
+            match xbps_update() {
+                Ok(_) => sys_update(false),
+                Err(err) => Err(err),
             }
-            match arg.as_str() {
-                "-h" | "--help" => {
-                    print_help();
-                    std::process::exit(0);
-                },
-                "-n" | "--dry-run" => {
-                    cmd.do_dry_run = true;
-                },
-                "-u" | "--update" => {
-                    cmd.run_sys_update = true;
-                },
-                "-X" | "--update-all" => {
-                    cmd.run_xbps_update = true;
-                    cmd.run_sys_update = true;
-                },
-                "-y" | "--assume-yes" => {
-                    cmd.assume_yes = true;
-                },
-                "-x" | "--xbps-args" => reading_xbps_args = true,
-                "-a" | "--alias" => {
-                    cmd.use_alias_mode = true;
-                    reading_xbps_args = true;
-                },
-                "-w" | "--wrapper" => {
-                    cmd.use_alias_mode = false;
-                },
-                _ => { cmd.add_xbps_arg(arg); },
-            };
-        }
-        else {
-            cmd.add_pkg(arg);
-        }
-    }
-
-    if cmd.pkgs().len() > 0 {
-        cmd.run_pkg_install = true;
-    }
+        },
+    };
 }
 
+fn install_pkgs(pkgs: Vec<&str>, do_dry_run: bool, assume_yes: bool) -> Result<(), std::io::Error> { 
+    //! Validate and install packages.
+    let query = Query::from(match validate_pkgs(pkgs.into_iter()) {
+        Some(pkgs) => pkgs,
+        None => {
+            println!("All packages removed. Exiting...");
+            return Ok(());
+        },
+    });
+
+    // Build args for command.
+    let pkg_names = query.get_pkg_names();
+    let mut args = vec!["-Sy"];
+    if do_dry_run {
+        args.push("-n".into());
+    }
+    args.extend(pkg_names);
+
+    // Build command.
+    let cmd = cmd("xbps-install", args)
+        .stderr_to_stdout()
+        .unchecked();
+
+    // If an update is required, run the install command again.
+    loop {
+        let mut lines = BufReader::new(cmd.reader()?).lines();
+        // Loop through lines in bufreader.
+        loop {
+            let line = match lines.next() {
+                Some(line) => line?,
+                None => return Ok(())
+            };
+
+            println!("{line}");
+
+            if line.contains("shlibs") 
+                && get_user_permission(assume_yes, "System needs to be updated.") {
+                    sys_update(assume_yes)?;
+                    break;
+            } 
+            // This is here just in case.
+            if line.contains("The 'xbps' package must be updated") 
+                && get_user_permission(assume_yes, "xbps package needs to be updated."){
+                    xbps_update()?;
+                    break;
+            }
+        }
+        
+    }
+}
+fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
+    let cmd = cmd("xbps-install", vec!["-Syu"])
+        .stderr_to_stdout()
+        .unchecked();
+    loop {
+        // If xbps update is needed, rerun this command.
+        let mut lines = BufReader::new(cmd.reader()?).lines();
+        // Iterate over lines in output.
+        loop {
+            let line = match lines.next() {
+                Some(line) => line?,
+                None => return Ok(())
+            };
+            if line.contains("The 'xbps' package must be updated") 
+                && get_user_permission(assume_yes, "xbps package needs to be updated."){
+                    xbps_update()?;
+                    break;
+            }
+        }
+    }
+}
+fn xbps_update()-> Result<(), std::io::Error> {
+    cmd("xbps-install", vec!["-Syu", "xbps"]).unchecked().run()?;
+    return Ok(());
+}
+#[cfg(test)]
+mod test {
+}

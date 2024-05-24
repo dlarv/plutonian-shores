@@ -89,7 +89,7 @@ impl InstallCommand {
     }
 
     /* Helper methods */
-    fn execute_alias_mode(&mut self) {
+    fn execute_aliaj_mode(&mut self) {
         self.build_cmd().unchecked().run().unwrap();
     }
 
