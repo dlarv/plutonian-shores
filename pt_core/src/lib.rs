@@ -1,6 +1,5 @@
 pub mod help;
-pub mod query;
-pub mod query_result;
+pub mod query; 
 
 use duct::{Expression, cmd};
 use mythos_core::{cli::get_cli_input, logger::get_logger_id, printfatal, printinfo, printwarn};
@@ -48,7 +47,7 @@ pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
         acc + x.trim_start_matches("-")
     });
 }
-pub fn validate_pkgs(search_terms: Vec<&str>) -> Option<Vec<QueryResult>> {
+pub fn validate_pkgs<T>(search_terms: T) -> Option<Vec<QueryResult>>  where T: Iterator<Item = String>{
     /*!
      * Iterate over pkgs, searching for each one in repo. 
      * Allows user to select from results or remove it.
