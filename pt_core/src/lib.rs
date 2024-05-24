@@ -8,27 +8,20 @@ use serde_derive::{Deserialize, Serialize};
 use std::io::{stdout, Write, stdin};
 
 /* FUNCTIONS */
-pub fn get_user_permission(assume_yes: bool, msg: &str) {
+pub fn get_user_permission(assume_yes: bool, msg: &str) -> bool{
     println!("{}", msg);
     loop {
-        print!("Would you like to proceed? Y/n: ");
         if assume_yes {
-            println!("Y");
-            return;
+            println!("Would you like to proceed? Y/n: Y");
+            return true;
         }
 
-        let _ = stdout().flush();
-        let mut input = String::new();
-        if let Err(msg) = stdin().read_line(&mut input) {
-            printfatal!("{msg}");
-        }
-        input = input.trim().to_lowercase().into();
-
+        let input = get_cli_input("Would you like to proceed? Y/n: ");
         if ["n", "no"].contains(&input.as_str()) {
-            printfatal!("User cancelled command");
+            return false;
         }
         if ["y", "yes", "\n", ""].contains(&input.as_str()) {
-            return;
+            return true;
         }
         eprintln!("Invalid input.");
     }

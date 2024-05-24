@@ -6,7 +6,7 @@ use std::ffi::OsString;
 
 use duct::cmd;
 use mythos_core::{cli::{clean_cli_args, get_cli_input}, logger::{get_logger_id, set_logger_id}, printfatal, printinfo};
-use pt_core::{validate_pkgs, Query, QueryResult};
+use pt_core::{get_user_permission, validate_pkgs, Query, QueryResult};
 fn main() {
     set_logger_id("COCYTUS");
     let args = clean_cli_args();
@@ -48,9 +48,8 @@ fn main() {
     }
 
     // Give user option to exit.
-    let msg = format!("The following packages will be removed.{}\nWould you like to continue? Y/n ", validated_pkgs.get_short_list());
-    let user_input = get_cli_input(&msg).to_lowercase();
-    if user_input == "n" || user_input == "no" {
+    let msg = format!("The following packages will be removed.{}", validated_pkgs.get_short_list());
+    if get_user_permission(false, &msg) {
         printinfo!("Exiting");
         return;
     }
