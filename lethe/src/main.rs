@@ -29,7 +29,7 @@ fn main() {
     // Validate packages
     // Ensure package(s) actually exist.
     let mut removed_pkgs = false;
-    let validated_pkgs = Query::from(match validate_pkgs(pkgs) {
+    let validated_pkgs = Query::from(match validate_pkgs(pkgs.into_iter()) {
         // Only grab packages that are installed.
         Some(pkgs) => pkgs.into_iter().filter(|p| { removed_pkgs = true; p.is_installed}).collect::<Vec<QueryResult>>(),
         None => {
@@ -56,8 +56,8 @@ fn main() {
     }
 
     // Create args list
-    let pkg_names = validated_pkgs.into_iter().map(|p| p.pkg_name.into()).collect::<Vec<String>>();
-    let mut args = vec!["-Ryo".to_string()];
+    let pkg_names = validated_pkgs.get_pkg_names();
+    let mut args = vec!["-Ryo"];
     if do_dry_run {
         args.push("-n".into());
     }
@@ -68,5 +68,4 @@ fn main() {
         Ok(_) => printinfo!("Success! Exiting"),
         Err(msg) => printfatal!("{msg}"),
     }
-
 }

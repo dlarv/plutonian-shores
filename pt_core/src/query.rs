@@ -147,6 +147,9 @@ impl Query{
         }
         return output;
     }
+    pub fn get_pkg_names<'a>(&'a self) -> Vec<&'a str> {
+        return self.results.iter().map(|p| p.pkg_name.as_str()).collect::<Vec<&str>>();
+    }
     fn build_msg(&self) -> String {
         let mut menu : String = String::new();
         let col_count: usize = 20;
