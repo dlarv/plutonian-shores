@@ -17,14 +17,16 @@ fn main() {
 
     for arg in &args {
         if arg == "-h" || arg == "--help" {
-            todo!();
-        } else if arg == "-u" || arg == "--update" {
+            println!("help msg");
+            return;
+        } 
+        if arg == "-u" || arg == "--update" {
             starting_state = StartState::SysUpdate;
         } else if arg == "-x" || arg == "--xbps-update" {
             starting_state = StartState::XbpsUpdate;
         } else if arg == "-n" || arg == "--dryrun" { 
             do_dry_run = true;
-        }else if arg.starts_with("-") {
+        } else if arg.starts_with("-") {
             printerror!("Unknown arg: {arg}");
         } else {
             pkgs.push(arg);

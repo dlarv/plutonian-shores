@@ -1,4 +1,8 @@
-- [ ] Remake charon file
-- [ ] Remove use of global unsafe variables
+- [x] Remake charon file
+- [x] Remove use of global unsafe variables
 - [ ] Fix test environment
-- [ ] Create containerized test environment
+- [ ] Better charon console logs
+- [ ] Log files
+- [ ] Cocytus piping functionality
+- [ ] Help messages
+- [ ] Util behavior when no packages/args are given

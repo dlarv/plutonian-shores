@@ -1,0 +1,3 @@
+bin = [
+	{ target = "../target/debug/lethe", alias = "lethe", perms = 0x755 },
+]

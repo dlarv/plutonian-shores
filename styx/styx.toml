@@ -1,0 +1,3 @@
+bin = [
+	{ target = "../target/debug/styx", alias = "styx", perms = 0x755 },
+]

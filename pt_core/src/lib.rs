@@ -1,4 +1,3 @@
-pub mod help;
 pub mod query; 
 
 use duct::{Expression, cmd};
