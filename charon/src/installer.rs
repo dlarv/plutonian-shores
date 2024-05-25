@@ -41,7 +41,6 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
             item.dest.metadata().unwrap().permissions().set_mode(item.perms);
         }
         let comment = comments.join("; ");
-        printinfo!("{}", comment);
         new_charon_file.push(comment);
     }
     return new_charon_file;

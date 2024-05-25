@@ -6,10 +6,10 @@
 
 mod installation_cmd;
 mod installer;
-use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
+use std::{fs, os::unix::fs::PermissionsExt, path::{Path, PathBuf}};
 
 use installation_cmd::InstallationCmd;
-use mythos_core::{cli::clean_cli_args, dirs, logger::{get_logger_id, set_logger_id}, printinfo, printwarn};
+use mythos_core::{cli::clean_cli_args, dirs, logger::{get_logger_id, set_logger_id}, printerror, printinfo, printwarn};
 use toml::Value;
 
 fn main() {
@@ -17,18 +17,45 @@ fn main() {
 
     // If no args are provided, do guided install.
     let args = clean_cli_args();
-    let do_dry_run = args.contains(&"-n".into()) || args.contains(&"--dryrun".into());
-    let path = args.iter().find(|x| !x.starts_with("-"));
+    let mut path: Option<&str> = None;
+    let mut do_dry_run = false;
+    let mut do_guided_install = false;
+
+    for arg in &args {
+        if arg == "-h" || arg == "--help" {
+            return;
+        } 
+        if arg == "-n" || arg == "--dryrun" {
+            do_dry_run = true;
+        } else if arg == "-g" || arg == "--guided" {
+            do_guided_install = true;
+        } else if arg == "-a" || arg == "--auto" {
+            do_guided_install = false;
+        } else if arg.starts_with("-") {
+            printerror!("Unknown arg: {arg}.");
+            return;
+        } else { 
+            path = Some(arg);
+            break;
+        }
+    }
+    // charon
+    // charon <path>
+    //  - Do auto install
+    // charon -g | --guided
+    // charon -a | --auto [path]
+    //  - Do auto install
 
     let installation_cmd = if path.is_none() {
+        println!("Starting guided installation");
         guided_install().unwrap()
     } else {
+        println!("Starting auto installation");
         auto_install(PathBuf::from(path.unwrap())).unwrap()
     };
 
     installer::run_installation(&installation_cmd, do_dry_run);
 }
-
 fn guided_install() -> Option<InstallationCmd> {
     //! Install program using guided input from user.
     let cmd = InstallationCmd::new();
@@ -44,6 +71,7 @@ fn guided_install() -> Option<InstallationCmd> {
 fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
     //! Install program using a .charon file.
     let table;
+    let parent: PathBuf = path.parent().unwrap_or(&Path::new("")).to_path_buf();
 
     if let Ok(file) = fs::read_to_string(&path) {
         if let Ok(Value::Table(v)) = toml::from_str::<Value>(&file) {
@@ -67,13 +95,14 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
         // Value is a list of items to install.
         if let Value::Array(list) = dir.1 {
             for item in list {
-                let path = match cmd.add_dir(&dir.0) {
+                let path = match cmd.add_dir(dir.0) {
                     Some(path) => path,
                     None => {
                         printwarn!("Not a valid path shortcut: {}", dir.0);
                         continue;
                     }
                 };
+                // cmd.add_item(&parent.join(path), item);
                 cmd.add_item(&path, item);
             }
         }
