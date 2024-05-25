@@ -11,27 +11,30 @@
  */
 
 use duct::cmd;
-use mythos_core::{cli::{clean_cli_args, get_cli_input}, logger::{get_logger_id, set_logger_id}, printinfo, printwarn};
-use pt_core::{get_user_selection, validate_pkgs, Query, QueryError, QueryResult};
+use mythos_core::{cli::clean_cli_args, logger::{get_logger_id, set_logger_id}, printinfo};
+use pt_core::{get_user_selection, validate_pkgs, Query};
 fn main() {
     set_logger_id("COCYTUS");
     let args = clean_cli_args();
-    let mut pkgs: Vec<&str> = Vec::new();
-    let mut opts: Vec<&str> = Vec::new();
+    let mut print_help = false;
 
-    // Parse opts.
-    for arg in &args {
-        if arg.starts_with("-") {
-            opts.push(&arg);
-        } else {
-            pkgs.push(&arg);
-        }
-    }
+    // Filter out packages.
+    let pkgs: Vec<&str> = args.iter().filter(|x| {
+        if x == &"-h" || x == &"--help" {
+            print_help = true;
+        } 
+        !x.starts_with("-")
+    }).map(|x| x.as_str()).collect();
+
+    if print_help || pkgs.len() == 0 {
+        println!("Wrapper for xbps-query -Rs (xrs). Allows the user to select from the results and pipe them to either styx or lethe.\ncocytus -h|--help\t\tPrint this menu\ncocytus [pkgs]\t\tQuery [pkgs].");
+        return;
+    } 
 
     let validated_pkgs = Query::from(match validate_pkgs(pkgs.into_iter()) {
         Some(pkgs) => pkgs,
         None => {
-            printinfo!("Exiting");
+            printinfo!("Exiting...");
             return;
         }
     });
@@ -46,7 +49,6 @@ fn main() {
         _ => panic!("User input should have been evaluated earlier")
     };
 }
-
 
 fn print_pkg_info(pkgs: Query) {
     for pkg in pkgs {
