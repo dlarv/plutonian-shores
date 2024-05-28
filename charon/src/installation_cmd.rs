@@ -50,11 +50,22 @@ impl InstallationCmd {
             source: None,
             version: None,
             description: None,
-            
         };
     }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.into();
+    }
+    pub fn set_info(&mut self, val: &Value) {
+        //! Get version, description, source, etc from info section of a .charon file.
+        if let Some(Value::String(val)) = val.get("version") {
+            self.version = Some(val.to_string());
+        }
+        if let Some(Value::String(val)) = val.get("description") {
+            self.description = Some(val.to_string());
+        }
+        if let Some(Value::String(val)) = val.get("source") {
+            self.source = Some(val.to_string());
+        }
     }
     pub fn add_item(&mut self, parent: &PathBuf, dest: &PathBuf, val: &Value) {
         let mut cmd = InstallItem {

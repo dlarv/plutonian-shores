@@ -105,6 +105,8 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
                 // cmd.add_item(&parent.join(path), item);
                 cmd.add_item(&parent, &path, item);
             }
+        } else if let Value::Table(tab) = dir.1 {
+            cmd.set_info(dir.1);
         }
     }
     return Some(cmd);
@@ -160,7 +162,7 @@ mod test {
     }
     #[test]
     fn test_install() {
-        let cmd = auto_install("data/charon.toml".into()).unwrap();
+        let cmd = auto_install("data/test.toml".into()).unwrap();
         let dir = dirs::expand_mythos_shortcut("d", "charon").unwrap();
         let mut path = PathBuf::from(dir);
         path.push("index.charon");
@@ -175,6 +177,8 @@ mod test {
         assert!(cmd.mkdirs.len() > 0);
     }
     #[test]
-    fn test_create_charon_file() {
+    fn test_info() {
+        let cmd = auto_install("data/test.toml".into()).unwrap();
+        assert_eq!(cmd.version, Some("0.0.0".to_string()));
     }
 }

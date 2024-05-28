@@ -1,3 +1,4 @@
+info = { version = "0.0.0", description = "Hello world" }
 bin = [
 	{ target = "../../target/debug/charon", alias = "charon", perms = 0x755 },
 ]
