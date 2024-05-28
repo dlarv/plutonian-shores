@@ -28,6 +28,8 @@ fn main() {
     for arg in &args {
         match arg.as_str() {
             "-h" | "--help" => {
+                println!("charon [opts] [path]\nBasic installer util that can use toml files to quickly install programs.\nopts:\n-h | --help\t\tPrint this menu\n-n | --dryrun\t\tRun command without making changes to filesystem\n-c | --create\t\tCreate a basic charon file");
+                return;
             },
             "-n" | "--dryrun" => do_dry_run = true,
             "-c" | "--create" => {
