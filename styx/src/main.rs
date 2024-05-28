@@ -1,8 +1,8 @@
 use std::io::{BufRead, BufReader};
 
 use duct::cmd;
-use mythos_core::{cli::clean_cli_args, printerror, logger::*};
-use pt_core::{get_user_permission, validate_pkgs, Query};
+use mythos_core::{cli::{clean_cli_args, get_user_permission}, printerror, logger::*};
+use pt_core::{validate_pkgs, Query};
 enum StartState {
     Install,
     SysUpdate,

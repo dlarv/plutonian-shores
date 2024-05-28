@@ -7,24 +7,6 @@ use serde_derive::{Deserialize, Serialize};
 use std::io::{stdout, Write, stdin};
 
 /* FUNCTIONS */
-pub fn get_user_permission(assume_yes: bool, msg: &str) -> bool{
-    println!("{}", msg);
-    loop {
-        if assume_yes {
-            println!("Would you like to proceed? Y/n: Y");
-            return true;
-        }
-
-        let input = get_cli_input("Would you like to proceed? Y/n: ");
-        if ["n", "no"].contains(&input.as_str()) {
-            return false;
-        }
-        if ["y", "yes", "\n", ""].contains(&input.as_str()) {
-            return true;
-        }
-        eprintln!("Invalid input.");
-    }
-}
 pub fn parse_output(output: Vec<u8>) -> String {
     return output.iter().map(|x| (*x as char)).collect::<String>().trim().to_string();
 }
