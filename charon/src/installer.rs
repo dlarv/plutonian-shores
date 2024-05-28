@@ -17,7 +17,6 @@ pub fn run_installation(installation_cmd: &InstallationCmd, do_dry_run: bool) {
     // Overwrite util.charon file.
     write_charon_file(&installation_cmd.name, new_charon_file, do_dry_run);
 }
-
 pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<String> {
     //! Run installation using an installation cmd.
     let mut new_charon_file = Vec::new();

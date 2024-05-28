@@ -23,7 +23,7 @@ pub struct InstallationCmd {
 /**
  * A single item to be installed.
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InstallItem {
     /// Path of item to be installed.
     pub target: PathBuf,
@@ -56,10 +56,10 @@ impl InstallationCmd {
     pub fn set_name(&mut self, name: &str) {
         self.name = name.into();
     }
-    pub fn add_item(&mut self, target: &PathBuf, val: &Value) {
+    pub fn add_item(&mut self, parent: &PathBuf, dest: &PathBuf, val: &Value) {
         let mut cmd = InstallItem {
-            target: "".into(),
-            dest: target.into(),
+            target: parent.into(),
+            dest: dest.into(),
             perms: 000,
             strip_ext: false,
             alias: None,
@@ -79,7 +79,8 @@ impl InstallationCmd {
         };
         let mut dest = None;
         if let Some(Value::String(val)) = table.get("target") {
-            cmd.target = val.into();
+            // cmd.target = val.into();
+            cmd.target = parent.join(&val).canonicalize().unwrap_or(val.into());
         }
         if let Some(Value::String(val)) = table.get("dest") {
             dest = Some(PathBuf::from(val));
@@ -116,6 +117,24 @@ impl InstallationCmd {
         println!("Copying {target:#?} --> {dest:#?}", target = cmd.target, dest = cmd.dest);
         self.items.push(cmd);
     }
+    pub fn add_simple_item(&mut self, target: PathBuf, dest: PathBuf, perms:u32, overwrite: bool, strip_ext: bool) {
+        //! Add item without using a toml file.
+        let dest = if strip_ext {
+            dest.join(PathBuf::from(target.file_stem().unwrap_or_default()).file_name().unwrap_or_default())
+        } else {
+            dest
+        };
+        let item = InstallItem {
+            target,
+            dest,
+            perms,
+            strip_ext,
+            alias: None,
+            overwrite,
+            comment: "".to_string(),
+        };
+        self.items.push(item);
+    }
     pub fn add_dir(&mut self, dir: &str) -> Option<PathBuf> {
         if let Some(path) = dirs::expand_mythos_shortcut(dir, "charon") {
             if !self.mkdirs.contains(&path) {
@@ -145,8 +164,60 @@ impl InstallationCmd {
 }
 
 impl InstallItem {
+    pub fn new() -> InstallItem {
+        return InstallItem {
+            target: PathBuf::new(),
+            dest: PathBuf::new(),
+            perms: 0,
+            strip_ext: false,
+            alias: None,
+            overwrite: true,
+            comment: "".into(),
+        };
+    }
+    pub fn target(&mut self, target: PathBuf) -> &mut InstallItem {
+        self.target = target;
+        return self;
+    }
+    pub fn perms(&mut self, val: u32) -> &mut InstallItem {
+        self.perms = val;
+        return self;
+    }
+    pub fn strip_ext(&mut self, val: bool) -> &mut InstallItem {
+        self.strip_ext = val;
+        return self;
+    }
+    pub fn overwrite(&mut self, val: bool) -> &mut InstallItem {
+        self.overwrite = val;
+        return self;
+    }
+    pub fn comment(&mut self, val: String) -> &mut InstallItem {
+        self.comment = val;
+        return self;
+    }
     pub fn print_dest(&self) -> String {
         return self.dest.to_string_lossy().to_string();
+    }
+    pub fn to_toml_str(&self) -> String {
+        let mut output = format!("{{ target = {:?}", self.target);
+
+        if self.perms > 0 {
+            output += &format!(", perms = {}", self.perms);
+        }
+        if self.strip_ext {
+            output += ", strip_ext = true";
+        }
+        if !self.overwrite {
+            output += ", overwrite = true";
+        }
+        if let Some(alias) = &self.alias {
+            output += &format!(", alias = {alias:?}");
+        }
+        if self.comment.len() > 0 {
+            output += &format!(", comment = {:?}", self.comment);
+        }
+        output += "}";
+        return output;
     }
 }
 
