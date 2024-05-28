@@ -143,7 +143,7 @@ mod test {
 
     #[test]
     fn test_mkdirs() {
-        let val = auto_install("data/charon.toml".into()).unwrap();
+        let val = auto_install("data/test.toml".into()).unwrap();
         let dir1 = dirs::expand_mythos_shortcut("d", "charon").unwrap();
         let dir2 = dirs::expand_mythos_shortcut("b", "charon").unwrap();
         let path1 = PathBuf::from(dir1);
@@ -152,7 +152,7 @@ mod test {
     }
     #[test]
     fn test_dest() {
-        let val = auto_install("data/charon.toml".into()).unwrap();
+        let val = auto_install("data/test.toml".into()).unwrap();
         let dir = dirs::expand_mythos_shortcut("d", "charon").unwrap();
         let mut path = PathBuf::from(dir);
         path.push("index.charon");
