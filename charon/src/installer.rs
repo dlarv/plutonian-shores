@@ -1,7 +1,5 @@
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
-
 use mythos_core::{dirs, logger::*, printinfo, printwarn};
-
 use crate::installation_cmd::InstallationCmd;
 
 pub fn run_installation(installation_cmd: &InstallationCmd, do_dry_run: bool) {
@@ -104,10 +102,17 @@ fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
 }
 fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
     //! Write file to $MYTHOS_DATA_DIR/$util_name.charon
-    let mut path = match dirs::get_dir(dirs::MythosDir::Data, "charon") {
+    let dest = if do_dry_run {
+        dirs::MythosDir::LocalData
+    } else {
+        dirs::MythosDir::Data
+    };
+
+    let mut path = match dirs::get_dir(dest, "charon") {
         Some(path) => path,
         None => return 
     };
+
     let extension = if do_dry_run {
         ".dryrun"
     } else {
