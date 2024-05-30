@@ -1,7 +1,4 @@
-
-
-
-
+info = { version = "0.2.0", description = "Wrapper for xbps-install" }
 bin = [
 	{ target = "../target/debug/styx", alias = "styx", perms = 0x755 },
 ]

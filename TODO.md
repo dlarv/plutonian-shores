@@ -1,5 +1,5 @@
 - [ ] Util behavior when no packages/args are given
-- [ ] Create script to automatically update version numbers.
+- [x] Create script to automatically update version numbers.
 - [x] Cocytus piping functionality
 - [x] Help messages
 - [x] Fuzzy find when query yields no results
