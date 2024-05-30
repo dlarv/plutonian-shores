@@ -6,7 +6,7 @@ use duct::cmd;
 use mythos_core::{cli::{get_user_permission, clean_cli_args}, logger::{set_logger_id, get_logger_id}, printfatal, printinfo};
 use pt_core::{validate_pkgs, Query, QueryResult};
 fn main() {
-    set_logger_id("COCYTUS");
+    set_logger_id("LETHE");
     let args = clean_cli_args();
     let mut pkgs: Vec<&str> = Vec::new();
     let mut opts: Vec<&str> = Vec::new();
