@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use mythos_core::dirs;
-use pt_core::QueryResult;
 use toml::Value;
 
 /**

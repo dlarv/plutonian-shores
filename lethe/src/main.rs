@@ -2,10 +2,8 @@
  * Simple wrapper for xbps-remove command -Ro.
  */
 
-use std::ffi::OsString;
-
 use duct::cmd;
-use mythos_core::{cli::{get_user_permission, clean_cli_args, get_cli_input}, logger::{get_logger_id, set_logger_id}, printfatal, printinfo};
+use mythos_core::{cli::{get_user_permission, clean_cli_args}, logger::{set_logger_id, get_logger_id}, printfatal, printinfo};
 use pt_core::{validate_pkgs, Query, QueryResult};
 fn main() {
     set_logger_id("COCYTUS");

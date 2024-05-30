@@ -33,7 +33,7 @@ fn main() {
         }
     }
 
-    let res = match starting_state {
+    let _ = match starting_state {
         StartState::Install => install_pkgs(pkgs, do_dry_run, false),
         StartState::SysUpdate => sys_update(false),
         StartState::XbpsUpdate => {

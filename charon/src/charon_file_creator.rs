@@ -1,9 +1,9 @@
-use std::{env::current_dir, path::{Path, PathBuf}};
+use std::{env::current_dir, path::PathBuf};
 
-use mythos_core::{cli::{get_cli_input, get_user_permission}, dirs::{get_dir, MythosDir}, logger::get_logger_id, printerror};
+use mythos_core::{cli::{get_cli_input, get_user_permission}, printerror, logger::get_logger_id};
 use pt_core::get_user_selection;
 
-use crate::installation_cmd::{InstallItem, InstallationCmd};
+use crate::installation_cmd::InstallItem;
 
 pub fn create_charon_file() -> Option<(String, String)> {
     //! Creates a basic charon file.
@@ -21,7 +21,7 @@ pub fn create_charon_file() -> Option<(String, String)> {
     }
     // TODO: Create file
     let mut file_contents = String::new();
-    let mut items: Vec<InstallItem> = Vec::new();
+    let mut _items: Vec<InstallItem> = Vec::new();
     
     if let Some(path) = get_file("binary") {
         file_contents += "bin = [\n\t";

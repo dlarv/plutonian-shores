@@ -7,11 +7,11 @@
 mod installation_cmd;
 mod installer;
 mod charon_file_creator;
-use std::{env::current_dir, ffi::OsString, fs::{self, copy}, path::{Path, PathBuf}};
+use std::{env::current_dir, ffi::OsString, fs, path::{Path, PathBuf}};
 
 use charon_file_creator::create_charon_file;
 use installation_cmd::InstallationCmd;
-use mythos_core::{cli::{clean_cli_args, get_cli_input}, dirs::{self, get_path, MythosDir}, logger::{get_logger_id, set_logger_id}, printerror, printinfo, printwarn};
+use mythos_core::{cli::clean_cli_args, logger::{set_logger_id, get_logger_id}, printerror, printwarn};
 use toml::Value;
 
 fn main() {
@@ -105,7 +105,7 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
                 // cmd.add_item(&parent.join(path), item);
                 cmd.add_item(&parent, &path, item);
             }
-        } else if let Value::Table(tab) = dir.1 {
+        } else if let Value::Table(_) = dir.1 {
             cmd.set_info(dir.1);
         }
     }

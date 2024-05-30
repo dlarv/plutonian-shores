@@ -1,10 +1,8 @@
 pub mod query; 
 
-use duct::{Expression, cmd};
+use duct::Expression;
 use mythos_core::{cli::get_cli_input, logger::get_logger_id, printfatal, printinfo, printwarn};
 use serde_derive::{Deserialize, Serialize};
-
-use std::io::{stdout, Write, stdin};
 
 /* FUNCTIONS */
 pub fn parse_output(output: Vec<u8>) -> String {

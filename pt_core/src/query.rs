@@ -339,6 +339,7 @@ impl IntoIterator for Query {
         return self.results.into_iter();
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::*;
