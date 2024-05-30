@@ -1,7 +1,8 @@
 - [ ] Log files
-- [ ] Cocytus piping functionality
+- [x] Cocytus piping functionality
 - [ ] Help messages
 - [ ] Util behavior when no packages/args are given
+- [ ] Fuzzy find when query yields no results
 
 Charon (0.2.1)
 - [x] Better charon console logs.
