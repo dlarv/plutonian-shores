@@ -1,4 +1,5 @@
 pub mod query; 
+mod utils;
 
 use duct::Expression;
 use mythos_core::{cli::get_cli_input, logger::get_logger_id, printfatal, printinfo, printwarn};

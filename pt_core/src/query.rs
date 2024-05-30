@@ -1,7 +1,7 @@
+use crate::utils::{parse_xbps_output, read_single_index, read_multiple_index};
 use std::{fs, process::{Command, Stdio}};
 
 use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
-use rust_fuzzy_search::fuzzy_compare;
 use toml::Value;
 
 use crate::{Query, QueryError, QueryResult};
@@ -26,33 +26,26 @@ impl Query{
         return Err(QueryError::NotFound(format!("Package not found: '{search_term}'")));
     }
 
-    pub fn len(&self) -> usize {
-        return self.results.len();
-    }
-    pub fn get<'a>(&'a self, index: usize) -> Option<&'a QueryResult> {
-        if index >= self.results.len() {
-            return None;
-        }
-        return Some(&self.results[index]);
-    }
-
     pub fn query_xbps(search_term: &str) -> Option<Query> {
         let raw_results = Command::new("xrs")
             .stderr(Stdio::piped())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .arg(search_term)
+            // Using search_term here works, unless no pkgs are found.
+            // So if the user does cocytus 'bledner' instead of 'blender', it will return nothing.
+            // Doing it this way would allow the query to find what the user likely meant.
+            .arg("")
             .output()
             .expect(&fatalmsg!("Error running query for {search_term}"))
             .stdout;
 
-        let (mut results, longest_name) = parse_xbps_output(raw_results, search_term);
+        let (mut results, longest_name) = parse_xbps_output(raw_results, search_term, THRESHOLD);
 
         if results.len() == 0 {
             return None;
         }
 
-        results.sort_by(|a, b| a.score.cmp(&b.score));
+        results.sort_by(|a, b| b.score.cmp(&a.score));
         return Some(Query { results, longest_name, pkg_name: search_term.into() });
     }
 
@@ -166,138 +159,16 @@ impl Query{
         }
         return format!("Query results for: {name}\n{menu}\n0. Remove pkg\nEnter option: ", name=self.pkg_name);
     }
-}
-/**
- * Wraps rust_fuzzy_search (crate)
- * Assigns a value between 0.0, 1.0
- * Returns None if value is below a given threshold
- */
-fn score_result(search_term: &str, name: &str) -> Option<i32> {
-    let score = fuzzy_compare(&search_term, &name);
-    if score >= THRESHOLD {
-        return Some((score * 100.0) as i32);
+
+    pub fn len(&self) -> usize {
+        return self.results.len();
     }
-    return None;
-}
-/**
- * xbps-query -> <block-of-text> | parse_results -> <structured-data>
- */
-fn parse_xbps_output(raw_results: Vec<u8>, search_term: &str) -> (Vec<QueryResult>, usize) {
-    enum Mode { IsInstalled, NameBlock, Gap, Description }
-    let mut output: Vec<QueryResult> = Vec::new();
-
-    let mut traversal_mode: Mode = Mode::IsInstalled;
-    let mut is_installed: bool = false;
-    let mut name_block: String = "".into();
-    let mut index: usize;
-    let mut name: String = "".into();
-    let mut version: String = "".into();
-    let mut desc: String = "".into();
-    let mut longest_name: usize = 0;
-
-    // Query result format:
-    // [<installed>] <name_block><ws*><description>\n  
-    // <name_block> -> <name>-<version>
-    // <name> can contain '-'
-    // Last '-' in <name_block> is considered beginning of <version>
-    for ch in raw_results {
-        // Start new package
-        if ch == b'\n' {
-            match score_result(&search_term, &name) {
-                Some(score) => {
-                    if name.len() > longest_name {
-                        longest_name = name.len();
-                    }
-                    output.push(QueryResult { 
-                        is_installed, 
-                        pkg_name: name.clone(),
-                        pkg_version: version.clone(),
-                        pkg_description: desc.clone(), 
-                        score,
-                    })
-                },
-                None => ()
-            }
-            name_block.clear();
-            desc.clear();
-            traversal_mode = Mode::IsInstalled;
+    pub fn get<'a>(&'a self, index: usize) -> Option<&'a QueryResult> {
+        if index >= self.results.len() {
+            return None;
         }
-        match traversal_mode {
-            Mode::IsInstalled => {
-                if ch == b' ' {
-                    traversal_mode = Mode::NameBlock;
-                } else if ch == b'*' {
-                    is_installed = true;
-                } else if ch == b'-' {
-                    is_installed = false; 
-                }
-            },
-            Mode::NameBlock => {
-                if ch.is_ascii_whitespace() {
-                    traversal_mode = Mode::Gap;
-
-                    // Separate <name>-<version>
-                    index = match name_block.rfind('-') {
-                        Some(index) => index, 
-                        None => name_block.len()
-                    };
-
-                    name = name_block[0..index].to_string();
-                    version = name_block[index..].to_string();
-                } else {
-                    name_block.push(ch as char);
-                }
-            },
-            Mode::Description => {
-                desc.push(ch as char);
-            },
-            Mode::Gap => {
-                if !ch.is_ascii_whitespace() {
-                    traversal_mode = Mode::Description;
-                    desc.push(ch as char);
-                }
-            },
-        }; // end match()
-    } // end loop
-    return (output, longest_name);
-}
-fn read_single_index(input: &str, query: &Vec<QueryResult>) -> Option<(QueryResult, usize)> {
-    /*!
-        * If input is a valid usize, get query[input]
-        * Else, return None
-        *
-        * input is not 0-indexed, it starts at 1.
-      */
-    let num_input = match input.parse::<usize>() {
-        Ok(0) | Err(_) => return None,
-        Ok(num) => num,
-    };
-    if num_input > query.len() {
-        return None;
+        return Some(&self.results[index]);
     }
-    let output = query[num_input - 1].clone();
-    return Some((output.to_owned(), output.pkg_name.len()));
-}
-fn read_multiple_index(input: &str, query: &Vec<QueryResult>) -> Option<(Vec<QueryResult>, usize)> {
-    let mut pkgs: Vec<QueryResult> = Vec::new();
-    let mut longest_name: usize = 0;
-    for num in input.split(" ") {
-        match read_single_index(num, query) {
-            Some((pkg, len)) => { 
-                pkgs.push(pkg);
-                longest_name = if len > longest_name {
-                    len
-                } else {
-                    longest_name
-                };
-            },
-            _ => {
-                eprintln!("You cannot use '0' or {}+ while selecting multiple packages!", query.len());
-                return None;
-            }
-        }
-    }
-    return Some((pkgs, longest_name));
 }
 impl From<QueryResult> for Query {
     fn from(value: QueryResult) -> Self {
