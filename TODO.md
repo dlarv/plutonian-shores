@@ -1,27 +1,11 @@
-- [ ] Util behavior when no packages/args are given
-- [ ] Create script to automatically update version numbers.
+- [ ] Log files
 - [x] Cocytus piping functionality
 - [x] Help messages
-- [x] Fuzzy find when query yields no results
+- [ ] Util behavior when no packages/args are given
+- [ ] Fuzzy find when query yields no results
 
-Charon (1.0.0)
+Charon (0.2.1)
 - [x] Better charon console logs.
-- [x] Charon can obtain version number.
+- [x] Charon can obtain version number 
     - [ ] and use it to determine whether updates are needed.
-- [ ] Create basic .desktop files.
-- [ ] Test plan.
-
-Cocytus (1.0.0)
-- [ ] Test plan.
-- [ ] Display info about packages.
-
-Lethe (1.0.0)
-- [ ] Test plan.
-
-PT_Core (1.0.0)
-- [ ] Test plan.
-- [ ] Allow/Ensure users can select multiple options per query.
-
-Styx (1.0.0)
-- [ ] Test plan.
-- [ ] Test environment.
+- [ ] Create basic .desktop files 
