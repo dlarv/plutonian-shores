@@ -1,3 +1,4 @@
+info = { version = "0.2.0", description = "Wrapper for xbps-query" }
 bin = [
 	{ target = "../target/debug/cocytus", alias = "cocytus", perms = 0x755 },
 ]
