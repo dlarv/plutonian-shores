@@ -1,6 +1,6 @@
 - [ ] Log files
 - [x] Cocytus piping functionality
-- [ ] Help messages
+- [x] Help messages
 - [ ] Util behavior when no packages/args are given
 - [ ] Fuzzy find when query yields no results
 

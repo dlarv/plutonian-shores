@@ -17,7 +17,10 @@ fn main() {
 
     for arg in &args {
         if arg == "-h" || arg == "--help" {
-            println!("help msg");
+            println!("Wrapper util for xbps-install");
+            println!("styx [opts] packages");
+            println!("opts:");
+            println!("-h | --help\t\tPrint this menu.\n-u | --update\t\tRun a system update. Equiv to xbps-install -Syu.\n-x | --xbps-update\t\tUpdate xbps. Contains an implicit '-u'.\n-n | --dryrun\t\tRun command w/o making changes to system.");
             return;
         } 
         if arg == "-u" || arg == "--update" {

@@ -3,24 +3,31 @@
  */
 
 use duct::cmd;
-use mythos_core::{cli::{get_user_permission, clean_cli_args}, logger::{set_logger_id, get_logger_id}, printfatal, printinfo};
+use mythos_core::{cli::{clean_cli_args, get_user_permission}, logger::{get_logger_id, set_logger_id}, printerror, printfatal, printinfo};
 use pt_core::{validate_pkgs, Query, QueryResult};
 fn main() {
     set_logger_id("LETHE");
     let args = clean_cli_args();
     let mut pkgs: Vec<&str> = Vec::new();
-    let mut opts: Vec<&str> = Vec::new();
     let mut do_dry_run = false;
 
     // Parse opts.
     for arg in &args {
+        if arg == "-h" || arg == "--help" {
+            println!("Wrapper util for xbps-remove -Ryo");
+            println!("lethe [opts] pkgs");
+            println!("opts:");
+            println!("-h | --help\t\tPrint this menu.\n-n | --dryrun\t\tRun command w/o making changes to system.");
+            return;
+        } 
         if arg == "-n" || arg == "--dryrun" {
             do_dry_run = true;
         }
-        else if arg.starts_with("-") {
-            opts.push(&arg);
-        } else {
+        else if !arg.starts_with("-") {
             pkgs.push(&arg);
+        } else {
+            printerror!("Unknown opt: '{arg}'");
+            return;
         }
     }
 
