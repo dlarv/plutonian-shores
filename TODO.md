@@ -8,7 +8,7 @@ Charon (1.0.0)
 - [x] Better charon console logs.
 - [x] Charon can obtain version number.
     - [ ] and use it to determine whether updates are needed.
-- [ ] Create basic .desktop files.
+- [x] Create basic .desktop files.
 - [ ] Test plan.
 
 Cocytus (1.0.0)
@@ -17,6 +17,7 @@ Cocytus (1.0.0)
 
 Lethe (1.0.0)
 - [ ] Test plan.
+- [ ] Test environment.
 
 PT_Core (1.0.0)
 - [ ] Test plan.
