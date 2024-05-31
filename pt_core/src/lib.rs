@@ -128,30 +128,3 @@ pub enum QueryError{
     TertiaryList(String),
     NotFound(String),
 }
-
-// Deprecating
-pub trait MythosCommand {
-    fn pkgs<'a> (&'a mut self) -> &'a mut Vec<String>;
-    fn xbps_args<'a> (&'a mut self) -> &'a mut Vec<String>;
-    fn build_cmd(&self) -> Expression;
-
-    fn add_pkg<T: Into<String>>(&mut self, pkg: T) -> &mut Self {
-        self.pkgs().push(pkg.into());
-        return self;
-    }
-    fn add_pkgs<'a, T>(&mut self, pkgs: T) -> &mut Self where T: IntoIterator<Item = &'a str> {
-        self.pkgs().extend(pkgs.into_iter().map(|x| x.to_string()));
-        return self;
-    }
-    fn add_xbps_args<'a, T>(&mut self, args: T) -> &mut Self where T: IntoIterator<Item = &'a str> {
-        self.xbps_args().extend(args.into_iter().map(|x| x.to_string()));
-        return self;
-    }
-    fn add_xbps_arg(&mut self, arg: String) -> &mut Self {
-        self.xbps_args().push(arg);
-        return self;
-    }
-    fn list_pkgs(&mut self) -> String {
-        return self.pkgs().iter().map(|x| format!("{}\n", x)).collect();
-    }
-}
