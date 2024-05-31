@@ -123,6 +123,17 @@ fn xbps_update()-> Result<(), std::io::Error> {
     cmd("xbps-install", vec!["-Syu", "xbps"]).unchecked().run()?;
     return Ok(());
 }
+
 #[cfg(test)]
 mod test {
+    /*!
+        * # Test Plan
+        * - Try install pkg, but system is out of date.
+        * - Try install pkg, but both system and xbps are ood.
+        * - Try install bad pkg.
+        * - Try update, but system is not ood.
+        * - Try update, but xbps is also ood.
+        * - Try update xbps.
+     */
+
 }

@@ -3,7 +3,7 @@ use std::{env::current_dir, path::PathBuf};
 use mythos_core::{cli::{get_cli_input, get_user_permission}, printerror, logger::get_logger_id};
 use pt_core::get_user_selection;
 
-use crate::installation_cmd::InstallItem;
+use crate::installation_cmd::{InstallItem, InstallationCmd};
 
 pub fn create_charon_file() -> Option<(String, String)> {
     //! Creates a basic charon file.
@@ -49,6 +49,26 @@ pub fn create_charon_file() -> Option<(String, String)> {
     }
 
     return Some((file_contents, util_name));
+}
+
+pub fn create_desktop_file(cmd: &InstallationCmd) -> String {
+    //! Create a util.desktop file in $HOME/.local/share/applications/
+    let mut output = vec![
+        "[Desktop Entry]".into(),
+        format!("Name={}", cmd.name),
+        // If this is incorrect, we'll let the user fix it.
+        format!("Exec={}", cmd.name),
+        // As of right now, there's no way for charon to know this information.
+        format!("#GenericName:"),
+        format!("#MimeType:"),
+        format!("#Categories:"),
+    ];
+
+    if let Some(desc) = &cmd.description {
+        output.push(format!("Comment={desc}")); 
+    }
+
+    return output.join("\n");
 }
 
 fn get_util_name() -> String {

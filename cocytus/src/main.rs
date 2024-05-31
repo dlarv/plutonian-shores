@@ -11,13 +11,10 @@
  */
 
 use std::process::Command;
-
-
-
-
 use duct::cmd;
 use mythos_core::{cli::clean_cli_args, logger::{get_logger_id, set_logger_id}, printinfo};
 use pt_core::{get_user_selection, validate_pkgs, Query};
+
 fn main() {
     set_logger_id("COCYTUS");
     let args = clean_cli_args();
@@ -97,4 +94,14 @@ fn pipe_to_lethe(pkgs:Query, do_dryrun: bool) {
             return;
         }
     };
+}
+
+#[cfg(test)]
+mod test {
+    /*! # Test Plan
+        * - Display query result info.
+        * - Pipe to styx.
+        * - Pipe to lethe.
+        * - Select multiple query results from one query.
+     */
 }

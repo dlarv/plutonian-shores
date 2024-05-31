@@ -139,6 +139,14 @@ fn find_charon_file(path: &PathBuf) -> Result<PathBuf, String>{
 
 #[cfg(test)]
 mod test {
+    /*! # Test Plan
+        * - Test mkdirs parsing.
+        * - Test install commands.
+        * - Test error in charon file.
+        * - Test file not found.
+        * - Create .desktop file.
+        * - Test empty charon item (e.g. data = []).
+     */
     use std::path::PathBuf;
     use mythos_core::dirs;
     use crate::*;

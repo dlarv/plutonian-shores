@@ -213,6 +213,16 @@ impl IntoIterator for Query {
 
 #[cfg(test)]
 mod tests {
+    /*! # Test Plan
+        * - Query xbps for incomplete name (e.g. ble).
+        * - Query xbps for mispelled name (e.g. blneder).
+        * - Query charon for uninstalled pkg.
+        * - Query charon using incomplete name.
+        * - Query charon using mispelled name.
+        * - Select from results.
+        * - Select multiple results from 1 query.
+        * - Select from multiple queries.
+     */
     use crate::*;
 
     #[test]

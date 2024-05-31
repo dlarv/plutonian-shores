@@ -73,3 +73,13 @@ fn main() {
         Err(msg) => printfatal!("{msg}"),
     }
 }
+
+#[cfg(test)]
+mod test {
+    /*! # Test Plan
+        * - Rm pkg not installed.
+        * - Rm bad pkg.
+        * - Rm pkg w/ orphans.
+        * - Rm pkg that shares dependencies w/ an installed pkg.
+     */
+}
