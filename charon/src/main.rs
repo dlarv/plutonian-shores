@@ -1,7 +1,6 @@
 /*!
  * Manual installation wizard.
  * Runs an automatic install, if given a .charon/.toml file.
- * Otherwise, runs a guided install. 
 */
 
 mod installation_cmd;
@@ -11,11 +10,11 @@ use std::{env::current_dir, ffi::OsString, fs, path::{Path, PathBuf}};
 
 use charon_file_creator::create_charon_file;
 use installation_cmd::InstallationCmd;
-use mythos_core::{cli::clean_cli_args, logger::{set_logger_id, get_logger_id}, printerror, printwarn};
+use mythos_core::{cli::clean_cli_args, logger::set_id, printerror, printwarn};
 use toml::Value;
 
 fn main() {
-    set_logger_id("CHARON");
+    let _ = set_id("CHARON");
 
     // If no args are provided, do guided install.
     let args = clean_cli_args();

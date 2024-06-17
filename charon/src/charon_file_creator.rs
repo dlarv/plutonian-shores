@@ -1,6 +1,6 @@
 use std::{env::current_dir, path::PathBuf};
 
-use mythos_core::{cli::{get_cli_input, get_user_permission}, printerror, logger::get_logger_id};
+use mythos_core::{cli::{get_cli_input, get_user_permission}, printerror};
 use pt_core::get_user_selection;
 
 use crate::installation_cmd::{InstallItem, InstallationCmd};

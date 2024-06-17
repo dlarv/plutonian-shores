@@ -3,10 +3,10 @@
  */
 
 use duct::cmd;
-use mythos_core::{cli::{clean_cli_args, get_user_permission}, logger::{get_logger_id, set_logger_id}, printerror, printfatal, printinfo};
+use mythos_core::{cli::{clean_cli_args, get_user_permission}, printerror, printfatal, printinfo, logger::set_id};
 use pt_core::{validate_pkgs, Query, QueryResult};
 fn main() {
-    set_logger_id("LETHE");
+    let _ = set_id("LETHE");
     let args = clean_cli_args();
     let mut pkgs: Vec<&str> = Vec::new();
     let mut do_dry_run = false;

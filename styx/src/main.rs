@@ -1,7 +1,7 @@
 use std::io::{BufRead, BufReader};
 
 use duct::cmd;
-use mythos_core::{cli::{clean_cli_args, get_user_permission}, printerror, logger::*};
+use mythos_core::{cli::{clean_cli_args, get_user_permission}, logger, printerror};
 use pt_core::{validate_pkgs, Query};
 enum StartState {
     Install,
@@ -9,6 +9,7 @@ enum StartState {
     XbpsUpdate,
 }
 fn main() {
+    let _ = logger::set_id("STYX");
     // let args = std::env::args().skip(1);
     let args = clean_cli_args();
     let mut pkgs: Vec<&str> = Vec::new();

@@ -1,7 +1,7 @@
 use crate::utils::{parse_xbps_output, read_single_index, read_multiple_index};
 use std::{fs, process::{Command, Stdio}};
 
-use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::get_logger_id};
+use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::*};
 use toml::Value;
 
 use crate::{Query, QueryError, QueryResult};

@@ -12,11 +12,11 @@
 
 use std::process::Command;
 use duct::cmd;
-use mythos_core::{cli::clean_cli_args, logger::{get_logger_id, set_logger_id}, printinfo};
+use mythos_core::{cli::clean_cli_args, logger::{self, set_id}, printerror, printinfo, printwarn};
 use pt_core::{get_user_selection, validate_pkgs, Query};
 
 fn main() {
-    set_logger_id("COCYTUS");
+    let _ = set_id("COCYTUS");
     let args = clean_cli_args();
     let mut print_help = false;
     // This is passed to styx or lethe, if the user chooses to do so.
@@ -45,7 +45,7 @@ fn main() {
         }
     });
 
-    println!("\nSelected packages:\n{}\n", validated_pkgs.get_short_list());
+    printinfo!("\nSelected packages:\n{}\n", validated_pkgs.get_short_list());
 
     match get_user_selection(&format!("0. Exit\n1. Pipe results to Styx\n2. Pipe results to Lethe\n3. Show details\nOption: "), 3) {
         0 => return,
@@ -58,7 +58,7 @@ fn main() {
 
 fn print_pkg_info(pkgs: Query) {
     for pkg in pkgs {
-        println!("\nShowing {}", pkg.pkg_name);
+        printinfo!("\nShowing {}", pkg.pkg_name);
         let _ = cmd!("xbps-query", "-R", pkg.pkg_name).pipe(cmd!("head")).run();
     }
 }
@@ -75,14 +75,14 @@ fn pipe_to_styx(pkgs: Query, do_dryrun: bool) {
     let _ = match cmd.spawn() {
         Ok(mut child) => child.wait(),
         Err(msg) => {
-            eprintln!("{msg:?}");
+            printerror!("{msg:?}");
             return;
         }
     };
 }
 fn pipe_to_lethe(pkgs:Query, do_dryrun: bool) {
     printinfo!("Piped to lethe");
-    let mut cmd = Command::new("styx");
+    let mut cmd = Command::new("lethe");
     if do_dryrun {
         cmd.arg("-n");
     } 
@@ -90,7 +90,7 @@ fn pipe_to_lethe(pkgs:Query, do_dryrun: bool) {
     let _ = match cmd.spawn() {
         Ok(mut child) => child.wait(),
         Err(msg) => {
-            eprintln!("{msg:?}");
+            printerror!("{msg:?}");
             return;
         }
     };

@@ -2,7 +2,7 @@ pub mod query;
 mod utils;
 
 use duct::Expression;
-use mythos_core::{cli::get_cli_input, logger::get_logger_id, printfatal, printinfo, printwarn};
+use mythos_core::{cli::get_cli_input, printfatal, printinfo, printwarn};
 use serde_derive::{Deserialize, Serialize};
 
 /* FUNCTIONS */
@@ -60,7 +60,6 @@ pub fn validate_pkgs<'a, T>(search_terms: T) -> Option<Vec<QueryResult>>  where 
             printinfo!("Removed {term}");
             continue;
         }
-
 
         // Display results
         let msg = query.get_short_list();

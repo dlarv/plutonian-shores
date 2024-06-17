@@ -1,4 +1,4 @@
-info = { version = "0.2.1", description = "Wrapper for xbps-remove" }
+info = { version = "0.2.2", description = "Wrapper for xbps-remove" }
 bin = [
 	{ target = "../target/debug/lethe", alias = "lethe", perms = 0x755 },
 ]
