@@ -112,6 +112,7 @@ fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
                 Some(line) => line?,
                 None => return Ok(())
             };
+            println!("{line}");
             if line.contains("The 'xbps' package must be updated") 
                 && get_user_permission(assume_yes, "xbps package needs to be updated."){
                     xbps_update()?;
