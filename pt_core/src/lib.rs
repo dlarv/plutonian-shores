@@ -63,7 +63,7 @@ pub fn validate_pkgs<'a, T>(search_terms: T) -> Option<Vec<QueryResult>>  where 
 
         // Display results
         //let msg = query.get_short_list();
-        //let selected_pkg_index = 1; //get_user_selection(&format!("{msg}\n0. Remove package\nEnter from the options above: "), query.len());
+        //let selected_pkg_index = 1; //get_user_selection(), query.len());
         let selection = query.select_from_results();
 
         // User chose to remove package.

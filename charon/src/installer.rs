@@ -1,5 +1,5 @@
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
-use mythos_core::{dirs, printinfo, printwarn};
+use mythos_core::{dirs, printerror, printinfo, printwarn};
 use crate::installation_cmd::InstallationCmd;
 
 pub fn run_installation(installation_cmd: &InstallationCmd, do_dry_run: bool) {
@@ -19,21 +19,25 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
     //! Run installation using an installation cmd.
     let mut new_charon_file = Vec::new();
     for item in &installation_cmd.items {
-        let mut comments = vec!["#"];
+        let mut comments = vec!["#".to_string()];
         // Add files to new_charon_file
         new_charon_file.push(item.print_dest());
 
         if item.comment.len() > 0 {
-            comments.push(&item.comment);
+            comments.push(item.comment.to_string());
         }
 
         if item.dest.exists() && !item.overwrite {
-            comments.push("File exists && !overwrite");
+            comments.push("File exists && !overwrite".into());
         }
         if !do_dry_run && item.overwrite {
             match fs::copy(&item.target, &item.dest) {
-                Ok(_) => comments.push("Successfully installed"),
-                Err(_) => comments.push("Error, could not copy file"),
+                Ok(_) => comments.push("Successfully installed".into()),
+                Err(msg) => {
+                    let msg = format!("Could not copy file: {msg}");
+                    printerror!("{msg}");
+                    comments.push(msg);
+                }
             }
             item.dest.metadata().unwrap().permissions().set_mode(item.perms);
         }
@@ -72,7 +76,9 @@ fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
     // name, version, description, source
 
     if let Some(mut index) = read_charon_file("index") {
+        println!("here");
         if !index.contains(&cmd.name) {
+            println!("here");
             index.push(cmd.to_toml_str().to_owned());
             write_charon_file("index", index, do_dry_run);
         }
@@ -88,6 +94,7 @@ fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
         None => return None
     };
     path.push(util_name.to_owned() + ".charon");
+    println!("p: {path:?}");
 
     let contents: Vec<String> = match fs::read_to_string(path) {
         Ok(contents) => contents,
