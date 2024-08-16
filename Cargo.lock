@@ -109,7 +109,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "charon"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "duct",
  "glob",
@@ -163,7 +163,7 @@ checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
 name = "cocytus"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "duct",
  "mythos-core",
@@ -287,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "lethe"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "duct",
  "mythos-core",

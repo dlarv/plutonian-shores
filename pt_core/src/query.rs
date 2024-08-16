@@ -120,7 +120,16 @@ impl Query{
         let num_digits = self.results.len() / 10;
         let columns = match termsize::get() {
             // Index of number + padding zeros + '.' + ' ' + longest_name + ' '
-            Some(size) =>  size.cols / (self.longest_name + num_digits + 2) as u16,
+            Some(size) =>  {
+                // If size.col < (...), then columns will be cast/rounded to 0.
+                // This will lead to a divide by zero error later on.
+                let div = (self.longest_name + num_digits + 2) as u16;
+                if size.cols < div {
+                    1
+                } else {
+                    size.cols / div
+                }
+            },
             None => 1
         };
 
