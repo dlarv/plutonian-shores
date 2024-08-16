@@ -78,13 +78,19 @@ impl Query{
         return None;
     }
 
-    pub fn select_from_results(&self) -> Query {
+    pub fn select_from_results(&self) -> Option<Query> {
         /*!
             * Allows user to select packages by indices.
+            * Return None if user selected 0, thereby cancelling selection.
+            * Else return Query, where its results are the packages they selected.
         */
+        let msg = &format!("{list}\n0. Remove package\nEnter from the options above: ", list = self.get_short_list());
         loop {
-            let input = get_cli_input(&self.build_msg());
-            let results = if input.find(" ") == None {
+            let input = get_cli_input(msg);
+            if input == "0" {
+                return None;
+            }
+            let results = if input.find(" ").is_none() {
                 let r = read_single_index(&input, &self.results);
                 if let Some(vals) = r {
                     Some((vec![vals.0], vals.1))
@@ -97,7 +103,7 @@ impl Query{
             };
 
             return match results {
-                Some(res) => Query { results: res.0, longest_name: res.1, pkg_name: format!("{} (Modified)", self.pkg_name) },
+                Some(res) => Some(Query { results: res.0, longest_name: res.1, pkg_name: format!("{} (Modified)", self.pkg_name) }),
                 None => {
                     eprintln!("Please enter an option above");
                     continue;
@@ -151,22 +157,6 @@ impl Query{
     }
     pub fn get_pkg_names<'a>(&'a self) -> Vec<&'a str> {
         return self.results.iter().map(|p| p.pkg_name.as_str()).collect::<Vec<&str>>();
-    }
-    fn build_msg(&self) -> String {
-        let mut menu : String = String::new();
-        let col_count: usize = 20;
-
-        for (i, item) in self.results.iter().enumerate() {
-            menu += &format!("{}. {}", i + 1, item.pkg_name);
-
-            if i % col_count == 0 {
-                menu += "\n";
-            }
-            else {
-                menu += &" ".repeat(self.longest_name - item.pkg_name.len() + 1);
-            }
-        }
-        return format!("Query results for: {name}\n{menu}\n0. Remove pkg\nEnter option: ", name=self.pkg_name);
     }
 
     pub fn len(&self) -> usize {

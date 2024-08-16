@@ -17,6 +17,7 @@ Charon (1.0.0)
     - [ ] and use it to determine whether updates are needed.
 - [x] Create basic .desktop files.
 - [ ] Test plan.
+- [ ] Charon should try to find charon file if one isn't provided.
 
 Cocytus (1.0.0)
 - [ ] Test plan.
@@ -28,7 +29,7 @@ Lethe (1.0.0)
 
 PT_Core (1.0.0)
 - [ ] Test plan.
-- [ ] Allow/Ensure users can select multiple options per query.
+- [x] Allow/Ensure users can select multiple options per query.
 
 Styx (1.0.0)
 - [ ] Test plan.

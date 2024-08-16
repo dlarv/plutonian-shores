@@ -62,17 +62,18 @@ pub fn validate_pkgs<'a, T>(search_terms: T) -> Option<Vec<QueryResult>>  where 
         }
 
         // Display results
-        let msg = query.get_short_list();
-        let selected_pkg_index = get_user_selection(&format!("{msg}\n0. Remove package\nEnter from the options above: "), query.len());
+        //let msg = query.get_short_list();
+        //let selected_pkg_index = 1; //get_user_selection(&format!("{msg}\n0. Remove package\nEnter from the options above: "), query.len());
+        let selection = query.select_from_results();
 
         // User chose to remove package.
-        if selected_pkg_index == 0 {
+        if selection.is_none() {
             printinfo!("Removed {term}");
             continue;
         }
         // Add pkg
-        println!("Selected: {selected_pkg_index}");
-        output.push(query.get(selected_pkg_index - 1).unwrap().clone());
+        //output.push(query.get(selected_pkg_index - 1).unwrap().clone());
+        output.extend(selection.unwrap().results);
     }
 
     return Some(output);
