@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use mythos_core::dirs;
+use mythos_core::{dirs, printinfo};
 use toml::Value;
 
 /**
@@ -124,7 +124,7 @@ impl InstallationCmd {
         } else {
             cmd.dest.push(cmd.target.file_name().unwrap());
         }
-        println!("Copying {target:#?} --> {dest:#?}", target = cmd.target, dest = cmd.dest);
+        println!("Copy {target:#?} --> {dest:#?}", target = cmd.target, dest = cmd.dest);
         self.items.push(cmd);
     }
     pub fn add_simple_item(&mut self, target: PathBuf, dest: PathBuf, perms:u32, overwrite: bool, strip_ext: bool) {
@@ -147,8 +147,8 @@ impl InstallationCmd {
     }
     pub fn add_dir(&mut self, dir: &str) -> Option<PathBuf> {
         if let Some(path) = dirs::expand_mythos_shortcut(dir, "charon") {
-            if !self.mkdirs.contains(&path) {
-                println!("Creating directory: {path:#?}");
+            if !self.mkdirs.contains(&path) && !path.exists() {
+                printinfo!("Create directory: {path:#?}");
                 self.mkdirs.push(path.to_owned());
             }
             return Some(path);

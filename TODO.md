@@ -19,7 +19,8 @@ Charon (1.0.0)
 - [ ] Test plan.
 - [ ] Charon should try to find charon file if one isn't provided.
 - [ ] Charon cannot overwrite its binary when installing itself.
-- [ ] Better output messages when installing.
+- [x] Better output messages when installing.
+- [x] Charon overwriting index file instead of appending to it.
 
 Cocytus (1.0.0)
 - [ ] Test plan.

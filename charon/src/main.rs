@@ -10,7 +10,7 @@ use std::{env::current_dir, ffi::OsString, fs, path::{Path, PathBuf}};
 
 use charon_file_creator::create_charon_file;
 use installation_cmd::InstallationCmd;
-use mythos_core::{cli::clean_cli_args, logger::set_id, printerror, printwarn};
+use mythos_core::{cli::clean_cli_args, logger::set_id, printerror, printinfo, printwarn};
 use toml::Value;
 
 fn main() {
@@ -49,9 +49,10 @@ fn main() {
         }
     }
 
-    println!("Starting auto installation");
+    printinfo!("Starting auto installation");
     let installation_cmd = auto_install(PathBuf::from(path.unwrap())).unwrap();
 
+    printinfo!("\nBeginning installation:");
     installer::run_installation(&installation_cmd, do_dry_run);
 }
 fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
@@ -69,20 +70,30 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
             }
         }
     }
+    printinfo!("Found charon file at {path:?}");
 
     let parent: PathBuf = path.parent().unwrap_or(&Path::new("")).to_path_buf().canonicalize().unwrap();
 
-    if let Ok(file) = fs::read_to_string(&path) {
-        if let Ok(Value::Table(v)) = toml::from_str::<Value>(&file) {
-            table = v;
-        } else {
+    match fs::read_to_string(&path) {
+        Ok(file) => match toml::from_str::<Value>(&file) {
+            Ok(Value::Table(v)) => table = v,
+            Ok(val) => {
+                printerror!("Formatting error in charon file. Expected table, found {val}");
+                return None;
+            },
+            Err(msg) => {
+                printerror!("Error in charon file: {msg}");
+                return None;
+            }
+        },
+        Err(msg) => {
+            printerror!("Error reading charon file: {msg}");
             return None;
         }
-    } else {
-        return None;
     }
 
     // Init
+    printinfo!("\nReading charon file:");
     let mut cmd = InstallationCmd::new();
 
     // Use filename as util name.

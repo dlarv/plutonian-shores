@@ -19,7 +19,10 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
     //! Run installation using an installation cmd.
     let mut new_charon_file = Vec::new();
     for item in &installation_cmd.items {
+        printinfo!("Installing {:?} --> {:?}", item.target, item.dest);
+
         let mut comments = vec!["#".to_string()];
+
         // Add files to new_charon_file
         new_charon_file.push(item.print_dest());
 
@@ -34,14 +37,13 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
             match fs::copy(&item.target, &item.dest) {
                 Ok(_) => comments.push("Successfully installed".into()),
                 Err(msg) => {
-                    let msg = format!("Could not copy file: {msg}");
-                    printerror!("{msg}");
-                    comments.push(msg);
+                    comments.push(format!("Could not copy file: {msg}"));
                 }
             }
             item.dest.metadata().unwrap().permissions().set_mode(item.perms);
         }
         let comment = comments.join("; ");
+        printinfo!("{comment}");
         new_charon_file.push(comment);
     }
     return new_charon_file;
@@ -70,20 +72,25 @@ fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
     if do_dry_run {
         return;
     }
+    printinfo!("\nUpdating index:");
 
     // Saves data as a entry in a toml file.
     // This file can be read directly into a pt_core::QueryResult
     // name, version, description, source
 
-    if let Some(mut index) = read_charon_file("index") {
-        println!("here");
-        if !index.contains(&cmd.name) {
-            println!("here");
+    if let Some(mut index) = read_charon_file("charon/index") {
+        printinfo!("Original index:\n{}\n", index.join("\n"));
+
+        if index.iter().filter(|x| x.contains(&cmd.name)).collect::<Vec<&String>>().len() == 0 {
             index.push(cmd.to_toml_str().to_owned());
+            printinfo!("Updated index:\n{}\n", index.join("\n"));
             write_charon_file("index", index, do_dry_run);
+        } else {
+            printinfo!("Util already found in index, no changes were made");
         }
 
     } else {
+        printinfo!("No index found, creating new");
         write_charon_file("index", vec![cmd.to_toml_str().to_owned()], do_dry_run);
     }
 }
