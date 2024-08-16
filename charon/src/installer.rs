@@ -94,7 +94,6 @@ fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
         None => return None
     };
     path.push(util_name.to_owned() + ".charon");
-    println!("p: {path:?}");
 
     let contents: Vec<String> = match fs::read_to_string(path) {
         Ok(contents) => contents,

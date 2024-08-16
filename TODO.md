@@ -18,6 +18,8 @@ Charon (1.0.0)
 - [x] Create basic .desktop files.
 - [ ] Test plan.
 - [ ] Charon should try to find charon file if one isn't provided.
+- [ ] Charon cannot overwrite its binary when installing itself.
+- [ ] Better output messages when installing.
 
 Cocytus (1.0.0)
 - [ ] Test plan.
