@@ -17,7 +17,7 @@ Charon (1.0.0)
     - [ ] and use it to determine whether updates are needed.
 - [x] Create basic .desktop files.
 - [ ] Test plan.
-- [ ] Charon should try to find charon file if one isn't provided.
+- [x] Charon should try to find charon file if one isn't provided.
 - [ ] Charon cannot overwrite its binary when installing itself.
 - [x] Better output messages when installing.
 - [x] Charon overwriting index file instead of appending to it.

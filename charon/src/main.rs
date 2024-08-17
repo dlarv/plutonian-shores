@@ -49,8 +49,26 @@ fn main() {
         }
     }
 
-    printinfo!("Starting auto installation");
-    let installation_cmd = auto_install(PathBuf::from(path.unwrap())).unwrap();
+    let path: PathBuf = if let Some(path) = path{
+        PathBuf::from(path)
+    } else {
+        match current_dir() {
+            Ok(path) => path,
+            Err(msg) => {
+                printerror!("Could not read current dir: {msg}");
+                return;
+            }
+        }
+    };
+
+    printinfo!("Starting auto installation\n");
+    let installation_cmd = match auto_install(path) {
+        Some(cmd) => cmd,
+        None => {
+            printinfo!("Could not install util, exiting...");
+            return;
+        }
+    };
 
     printinfo!("\nBeginning installation:");
     installer::run_installation(&installation_cmd, do_dry_run);
@@ -132,7 +150,7 @@ fn find_charon_file(path: &PathBuf) -> Result<PathBuf, String>{
 
     let res = contents.find(|file| {
         if let Ok(file) = file {
-            file.path().extension() == Some(&OsString::from(".charon"))
+            file.path().extension() == Some(&OsString::from("charon"))
         } else {
             false
         }
