@@ -1,5 +1,5 @@
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
-use mythos_core::{dirs, printerror, printinfo, printwarn};
+use mythos_core::{dirs, printinfo, printwarn};
 use crate::installation_cmd::InstallationCmd;
 
 pub fn run_installation(installation_cmd: &InstallationCmd, do_dry_run: bool) {
