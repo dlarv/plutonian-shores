@@ -46,7 +46,6 @@ impl Query{
             return None;
         }
 
-
         results.sort_by(|a, b| b.score.cmp(&a.score));
 
         if results[0].score >= 100 {
