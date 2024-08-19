@@ -1,7 +1,6 @@
 pub mod query; 
 mod utils;
 
-use duct::Expression;
 use mythos_core::{cli::get_cli_input, printfatal, printinfo, printwarn};
 use serde_derive::{Deserialize, Serialize};
 
@@ -26,6 +25,8 @@ pub fn validate_pkgs<'a, T>(search_terms: T) -> Option<Vec<QueryResult>>  where 
      * Allows user to select from results or remove it.
      * User also has opportunity to exit.
      * Returns None if all packages are removed or user exits.
+     *
+     * If not do_selection: Only ensure packages exist, but don't allow user to select new ones.
      */
     let mut output: Vec<QueryResult> = Vec::new();
 

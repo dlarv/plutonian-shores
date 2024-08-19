@@ -12,7 +12,7 @@
 
 use std::process::Command;
 use duct::cmd;
-use mythos_core::{cli::clean_cli_args, logger::{self, set_id}, printerror, printinfo, printwarn};
+use mythos_core::{cli::clean_cli_args, logger::set_id, printerror, printinfo};
 use pt_core::{get_user_selection, validate_pkgs, Query};
 
 fn main() {

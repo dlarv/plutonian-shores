@@ -1,7 +1,7 @@
 use crate::utils::{parse_xbps_output, read_single_index, read_multiple_index};
 use std::{fs, process::{Command, Stdio}};
 
-use mythos_core::{cli::get_cli_input, dirs, fatalmsg, logger::*};
+use mythos_core::{cli::get_cli_input, dirs, fatalmsg, printerror};
 use toml::Value;
 
 use crate::{Query, QueryError, QueryResult};
@@ -39,13 +39,20 @@ impl Query{
             .expect(&fatalmsg!("Error running query for {search_term}"))
             .stdout;
 
+
         let (mut results, longest_name) = parse_xbps_output(raw_results, search_term, THRESHOLD);
 
         if results.len() == 0 {
             return None;
         }
 
+
         results.sort_by(|a, b| b.score.cmp(&a.score));
+
+        if results[0].score >= 100 {
+            results = vec![results.remove(0)];
+        }
+
         return Some(Query { results, longest_name, pkg_name: search_term.into() });
     }
 
@@ -54,12 +61,18 @@ impl Query{
         let path = dirs::get_dir(dirs::MythosDir::Data, "charon/index.charon")?;
         let res = match fs::read_to_string(path) {
             Ok(res) => res,
-            Err(_) => return None
+            Err(msg) => {
+                printerror!("Could not load charon file: {msg}");
+                return None;
+            }
         };
 
         let table: Value = match toml::from_str(&res) {
             Ok(table) => table,
-            Err(_) => return None,
+            Err(msg) => {
+                printerror!("Could not parse charon file: {msg}");
+                return None;
+            }
         };
 
         // Get table value
@@ -212,6 +225,7 @@ impl IntoIterator for Query {
 
 #[cfg(test)]
 mod tests {
+    #![allow(dead_code)]
     /*! # Test Plan
         * - Query xbps for incomplete name (e.g. ble).
         * - Query xbps for mispelled name (e.g. blneder).
@@ -226,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_xbps_query() {
-        let res = Query::query_xbps("blender").unwrap();
+        let res = Query::query_xbps("blende").unwrap();
         assert_eq!(res.results[0].pkg_name, "blender");
     }
     #[test]
@@ -235,6 +249,12 @@ mod tests {
         assert_eq!("charon", res.unwrap().pkg_name);
         let res2 = Query::query_charon("hello");
         assert!(matches!(res2, None));
+    }
+    #[test]
+    fn test_exact_match() {
+        let res = Query::query_xbps("blender").unwrap();
+        assert_eq!(res.results[0].pkg_name, "blender");
+        assert_eq!(res.results.len(), 1);
     }
     // #[test]
     fn test_selection() {

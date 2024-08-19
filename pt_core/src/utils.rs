@@ -3,11 +3,17 @@ use rust_fuzzy_search::fuzzy_compare;
 use crate::QueryResult;
 
 
-/**
- * Assigns a value between 0.0, 1.0
+/** 
+ * Assigns a value between 0, 100
  * Returns None if value is below a given threshold
+ * Ensures exact matches return 100.
  */
 fn score_result(search_term: &str, name: &str, threshold: f32) -> Option<i32> {
+    // Ensure exact matches return 100%.
+    // Just in case any weird floating point nonsense happens.
+    if search_term == name {
+        return Some(100);
+    }
     let score = fuzzy_compare(&search_term, &name);
     if score >= threshold {
         return Some((score * 100.0) as i32);
