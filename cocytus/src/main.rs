@@ -67,7 +67,9 @@ fn pipe_to_styx(pkgs: Query, do_dryrun: bool) {
     // Check if styx is installed.
     // Execute install
     printinfo!("Piping to styx");
-    let mut cmd = Command::new("styx");
+    let mut cmd = Command::new("sudo");
+    cmd.arg("styx");
+
     if do_dryrun {
         cmd.arg("-n");
     } 
@@ -82,7 +84,9 @@ fn pipe_to_styx(pkgs: Query, do_dryrun: bool) {
 }
 fn pipe_to_lethe(pkgs:Query, do_dryrun: bool) {
     printinfo!("Piped to lethe");
-    let mut cmd = Command::new("lethe");
+    let mut cmd = Command::new("sudo");
+    cmd.arg("lethe");
+
     if do_dryrun {
         cmd.arg("-n");
     } 

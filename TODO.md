@@ -25,6 +25,7 @@ Charon (1.0.0)
 Cocytus (1.0.0)
 - [ ] Test plan.
 - [ ] Display info about packages.
+- [x] Piping to styx/lethe should use sudo, even if cocytus didn't.
 
 Lethe (1.0.0)
 - [ ] Test plan.
