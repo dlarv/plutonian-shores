@@ -1,4 +1,5 @@
 pub mod query; 
+pub mod query_result;
 mod utils;
 
 use mythos_core::{cli::get_cli_input, printfatal, printinfo, printwarn};

@@ -1,4 +1,4 @@
-use crate::utils::{parse_xbps_output, read_single_index, read_multiple_index};
+use crate::utils::{parse_xbps_output, read_multiple_index, read_single_index};
 use std::{fs, process::{Command, Stdio}};
 
 use mythos_core::{cli::get_cli_input, dirs, fatalmsg, printerror};
@@ -54,7 +54,6 @@ impl Query{
 
         return Some(Query { results, longest_name, pkg_name: search_term.into() });
     }
-
     pub fn query_charon(search_term: &str) -> Option<QueryResult> {
         //! Check if search term is contained inside of index.charon.
         let path = dirs::get_dir(dirs::MythosDir::Data, "charon/index.charon")?;
@@ -89,7 +88,6 @@ impl Query{
 
         return None;
     }
-
     pub fn select_from_results(&self) -> Option<Query> {
         /*!
             * Allows user to select packages by indices.
@@ -123,11 +121,6 @@ impl Query{
             };
         }
     }
-    pub fn replace_package(&mut self) {
-        /*!
-         * 
-        */
-    }
     pub fn get_short_list(&self) -> String {
         /*!
          * Display list of results in separate columns.
@@ -156,7 +149,6 @@ impl Query{
         for (i, res) in self.results.iter().enumerate() {
             // Current index of number + padding zeros + '.' + name + ' '
             output += &format!("{id:0$}. {name: <longest_name$} ", num_digits, id = i + 1, name = res.pkg_name); 
-
             // Loop down to next row
             if row_counter % columns == 0 {
                 output += "\n";

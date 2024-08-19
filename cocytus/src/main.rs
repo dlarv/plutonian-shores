@@ -13,7 +13,7 @@
 use std::process::Command;
 use duct::cmd;
 use mythos_core::{cli::clean_cli_args, logger::set_id, printerror, printinfo};
-use pt_core::{get_user_selection, validate_pkgs, Query};
+use pt_core::{get_user_selection, validate_pkgs, Query, QueryResult};
 
 fn main() {
     let _ = set_id("COCYTUS");
@@ -37,7 +37,7 @@ fn main() {
         return;
     } 
 
-    let validated_pkgs = Query::from(match validate_pkgs(pkgs.into_iter()) {
+    let mut validated_pkgs = Query::from(match validate_pkgs(pkgs.into_iter()) {
         Some(pkgs) => pkgs,
         None => {
             printinfo!("Exiting...");
@@ -47,20 +47,39 @@ fn main() {
 
     printinfo!("\nSelected packages:\n{}\n", validated_pkgs.get_short_list());
 
-    match get_user_selection(&format!("0. Exit\n1. Pipe results to Styx\n2. Pipe results to Lethe\n3. Show details\nOption: "), 3) {
-        0 => return,
-        1 => pipe_to_styx(validated_pkgs, do_dryrun),
-        2 => pipe_to_lethe(validated_pkgs, do_dryrun),
-        3 => print_pkg_info(validated_pkgs),
-        _ => panic!("User input should have been evaluated earlier")
-    };
+    loop {
+        match get_user_selection(&format!("0. Exit\n1. Pipe results to Styx\n2. Pipe results to Lethe\n3. Show details\nOption: "), 3) {
+            0 => return,
+            1 => {
+                pipe_to_styx(validated_pkgs, do_dryrun);
+                return;
+            },
+            2 => {
+                pipe_to_lethe(validated_pkgs, do_dryrun);
+                return;
+            },
+            3 => {
+                validated_pkgs = match print_pkg_info(validated_pkgs) {
+                    Some(pkgs) => pkgs,
+                    None => return
+                }
+            },
+            _ => panic!("User input should have been evaluated earlier")
+        };
+    }
 }
 
-fn print_pkg_info(pkgs: Query) {
-    for pkg in pkgs {
-        printinfo!("\nShowing {}", pkg.pkg_name);
-        let _ = cmd!("xbps-query", "-R", pkg.pkg_name).pipe(cmd!("head")).run();
+fn print_pkg_info(query: Query) -> Option<Query> {
+    let msg = "\n0. Return\n1. Previous\n2. Next\nOption: ";
+    let mut pkgs: Vec<QueryResult> = Vec::new();
+
+    for pkg in query {
+        let info = pkg.display();
+        println!("\nShowing info for \"{}\"", pkg.pkg_name);
+        println!("{info}");
     }
+
+    return None;
 }
 fn pipe_to_styx(pkgs: Query, do_dryrun: bool) {
     // Check if user has sudo privileges   
