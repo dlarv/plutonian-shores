@@ -11,17 +11,25 @@ pub fn create_charon_file() -> Option<(String, String)> {
     let util_name = get_util_name();
 
     let input = get_user_selection(
-        &format!( "Creating a Charon File for {}:\n0. Exit\n1. Basic Skeleton\n2. Guided creation\nEnter Option: ", util_name), 
-        2);
+        &format!(
+            "Creating a Charon File for {}:\n0. Exit\n1. Basic Skeleton\n2. Guided creation\nEnter Option: ", 
+            util_name
+        ), 
+        2
+    );
     match input {
         0 => return None,
         1 => return Some((skeleton().to_string(), util_name)),
         2 => (),
         _ => panic!("Input should have been validated previously")
     }
-    // TODO: Create file
+
+    // Add items to file
     let mut file_contents = String::new();
     let mut _items: Vec<InstallItem> = Vec::new();
+
+    // Add header
+    file_contents += &create_header();
     
     if let Some(path) = get_file("binary") {
         file_contents += "bin = [\n\t";
@@ -49,6 +57,10 @@ pub fn create_charon_file() -> Option<(String, String)> {
     }
 
     return Some((file_contents, util_name));
+}
+
+pub fn create_header() -> String {
+    return "info = { version = \"0.0.0\", description = \"Hello world\", source = \"charon\" }\n".into();
 }
 
 pub fn create_desktop_file(cmd: &InstallationCmd) -> String {
@@ -108,6 +120,7 @@ fn get_file(msg: &str) -> Option<PathBuf> {
         println!("Please enter a valid path to a file");
     }
 }
+
 const fn skeleton() -> &'static str {
     return "# Example: config = [{ target = \"path/to/local\", alias = \"alt_file_name\", perms = 0x544, strip_ext = false, overwrite = false, comment = \"\" }]\nalias = []\nbin = []\nconfig = []\ndata = []\nlocalconfig = []\nlocaldata = []\nlib = []" ;
 }
