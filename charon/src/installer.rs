@@ -1,5 +1,5 @@
 use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
-use mythos_core::{dirs, printinfo, printwarn};
+use mythos_core::{dirs, printerror, printinfo, printwarn};
 use crate::installation_cmd::InstallationCmd;
 
 pub fn run_installation(installation_cmd: &InstallationCmd, do_dry_run: bool) {
@@ -40,7 +40,12 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
                     comments.push(format!("Could not copy file: {msg}"));
                 }
             }
-            item.dest.metadata().unwrap().permissions().set_mode(item.perms);
+            match item.dest.metadata() {
+                Ok(metadata) => metadata.permissions().set_mode(item.perms),
+                Err(err) => {
+                    printerror!("Error changing permissions for {item:?}. {err}");
+                }
+            }
         }
         let comment = comments.join("; ");
         printinfo!("{comment}");
