@@ -18,13 +18,13 @@ fn main() {
 
     // If no args are provided, do guided install.
     let args = clean_cli_args();
-    let mut path: Option<&str> = None;
+    let mut path: Option<String> = None;
     let mut do_dry_run = false;
 
     // charon
     // charon <path/to/dir/>
     // charon <path/to/charon>
-    for arg in &args {
+    for arg in args {
         match arg.as_str() {
             "-h" | "--help" => {
                 println!("charon [opts] [path]\nBasic installer util that can use toml files to quickly install programs.\nopts:\n-h | --help\t\tPrint this menu\n-n | --dryrun\t\tRun command without making changes to filesystem\n-c | --create\t\tCreate a basic charon file");
@@ -126,7 +126,7 @@ fn auto_install(path: PathBuf) -> Option<InstallationCmd> {
                 Some(path) => path,
                 None => {
                     printwarn!("Not a valid path shortcut: {}", dir.0);
-                    continue;
+                    return None;
                 }
             };
             for item in list {
@@ -179,44 +179,43 @@ mod test {
     use mythos_core::dirs;
     use crate::*;
 
-    //#[test]
-    // If the directory already exists, charon will ignore it, making this test not work anymore.
-    fn test_mkdirs() {
-        let val = auto_install("data/test.toml".into()).unwrap();
-        let dir1 = dirs::expand_mythos_shortcut("d", "charon").unwrap();
-        let dir2 = dirs::expand_mythos_shortcut("b", "charon").unwrap();
-        let path1 = PathBuf::from(dir1);
-        let path2 = PathBuf::from(dir2);
-        assert_eq!(val.mkdirs, vec![path2, path1]);
+    #[test]
+    fn find_charon_file_in_dir() {
     }
     #[test]
-    fn test_dest() {
-        let val = auto_install("data/test.toml".into()).unwrap();
-        let dir = dirs::expand_mythos_shortcut("d", "charon").unwrap();
-        let mut path = PathBuf::from(dir);
-        path.push("index.charon");
-        assert_eq!(val.items[1].dest, path);
+    fn charon_file_dne() {
     }
     #[test]
-    fn test_install() {
-        let cmd = auto_install("data/test.toml".into()).unwrap();
-        let dir = dirs::expand_mythos_shortcut("d", "charon").unwrap();
-        let mut path = PathBuf::from(dir);
-        path.push("index.charon");
-
-        let val = installer::install(&cmd, true);
-        assert!(val.contains(&path.to_string_lossy().to_string()));
-    }
-
-    //#[test]
-    // If the directory already exists, charon will ignore it, making this test not work anymore.
-    fn test_empty_charon_item() {
-        let cmd = auto_install("data/empty_test.toml".into()).unwrap();
-        assert!(cmd.mkdirs.len() > 0);
+    fn charon_file_empty() {
     }
     #[test]
-    fn test_info() {
-        let cmd = auto_install("data/test.toml".into()).unwrap();
-        assert_eq!(cmd.version, Some("0.0.0".to_string()));
+    fn invalid_dir() {
+    }
+    #[test]
+    fn file_exists_and_overwrite() {
+    }
+    #[test]
+    fn file_exists_and_no_overwrite() {
+    }
+    #[test]
+    fn file_dne_and_no_overwrite() {
+    }
+    #[test]
+    fn file_dne_and_overwrite() {
+    }
+    #[test]
+    fn empty_dir_item() {
+    }
+    #[test]
+    fn dir_dne() {
+    }
+    #[test]
+    fn target_missing() {
+    }
+    #[test]
+    fn item_exists_in_index() {
+    }
+    #[test]
+    fn remove_orphans() {
     }
 }

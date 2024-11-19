@@ -124,7 +124,7 @@ impl InstallationCmd {
         } else {
             cmd.dest.push(cmd.target.file_name().unwrap());
         }
-        println!("Copy {target:#?} --> {dest:#?}", target = cmd.target, dest = cmd.dest);
+        printinfo!("Copy {target:#?} --> {dest:#?}", target = cmd.target, dest = cmd.dest);
         self.items.push(cmd);
     }
     pub fn add_simple_item(&mut self, target: PathBuf, dest: PathBuf, perms:u32, overwrite: bool, strip_ext: bool) {

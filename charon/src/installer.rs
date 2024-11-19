@@ -23,7 +23,7 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
 
         let mut comments = vec!["#".to_string()];
 
-        // Add files to new_charon_file
+       // Add files to new_charon_file
         new_charon_file.push(item.print_dest());
 
         if item.comment.len() > 0 {
@@ -33,7 +33,7 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
         if item.dest.exists() && !item.overwrite {
             comments.push("File exists && !overwrite".into());
         }
-        if !do_dry_run && item.overwrite {
+        if !do_dry_run && (item.overwrite || !item.dest.exists()) {
             match fs::copy(&item.target, &item.dest) {
                 Ok(_) => comments.push("Successfully installed".into()),
                 Err(msg) => {
@@ -53,8 +53,10 @@ pub fn install(installation_cmd: &InstallationCmd, do_dry_run: bool) -> Vec<Stri
     }
     return new_charon_file;
 }
-fn remove_orphans(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<String>, do_dry_run: bool) {
+fn remove_orphans(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<String>, do_dry_run: bool) -> Vec<String> {
     //! Remove deprecated files installed in previous versions.
+    let mut removed_files = Vec::new();
+
     if let Some(mut old_files) = old_charon_file {
         old_files.retain(|x| !new_charon_file.contains(x));
         for file in old_files {
@@ -62,6 +64,9 @@ fn remove_orphans(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<St
             if file.starts_with("#") {
                 continue;
             }
+
+            removed_files.push(file.clone());
+
             let path = PathBuf::from(file);
             if !do_dry_run && path.exists() {
                 match fs::remove_file(&path) {
@@ -71,6 +76,7 @@ fn remove_orphans(old_charon_file: Option<Vec<String>>, new_charon_file: &Vec<St
             }
         }
     }
+    return removed_files;
 }
 fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
     //! Modify index.charon file
@@ -91,6 +97,7 @@ fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
             printinfo!("Updated index:\n{}\n", index.join("\n"));
             write_charon_file("index", index, do_dry_run);
         } else {
+            // TODO: This should overwrite, incase any data has changed.
             printinfo!("Util already found in index, no changes were made");
         }
 
@@ -101,7 +108,7 @@ fn modify_index(cmd: &InstallationCmd, do_dry_run: bool) {
 }
 fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
     //! Read file inside $MYTHOS_DATA_DIR/$util_name.charon
-    let mut path = match dirs::get_dir(dirs::MythosDir::Data, util_name) {
+    let mut path = match dirs::get_path(dirs::MythosDir::Data, util_name) {
         Some(path) => path,
         None => return None
     };
@@ -118,7 +125,7 @@ fn read_charon_file(util_name: &str) -> Option<Vec<String>> {
 
     return Some(contents);
 }
-fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
+fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) -> String {
     //! Write file to $MYTHOS_DATA_DIR/$util_name.charon
     let dest = if do_dry_run {
         dirs::MythosDir::LocalData
@@ -126,9 +133,9 @@ fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
         dirs::MythosDir::Data
     };
 
-    let mut path = match dirs::get_dir(dest, "charon") {
+    let mut path = match dirs::get_path(dest, "charon") {
         Some(path) => path,
-        None => return 
+        None => return  "".to_string()
     };
 
     let extension = if do_dry_run {
@@ -139,5 +146,6 @@ fn write_charon_file(util_name: &str, data: Vec<String>, do_dry_run: bool) {
 
     path.push(util_name.to_owned() + &extension);
     let contents = data.join("\n");
-    fs::write(path, contents).unwrap();
+    fs::write(path, &contents).unwrap();
+    return contents;
 }
