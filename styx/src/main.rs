@@ -12,11 +12,11 @@ fn main() {
     let _ = logger::set_id("STYX");
     // let args = std::env::args().skip(1);
     let args = clean_cli_args();
-    let mut pkgs: Vec<&str> = Vec::new();
+    let mut pkgs: Vec<String> = Vec::new();
     let mut starting_state = StartState::Install;
     let mut do_dry_run = false;
 
-    for arg in &args {
+    for arg in args {
         if arg == "-h" || arg == "--help" {
             println!("Wrapper util for xbps-install");
             println!("styx [opts] packages");
@@ -49,7 +49,7 @@ fn main() {
     };
 }
 
-fn install_pkgs(pkgs: Vec<&str>, do_dry_run: bool, assume_yes: bool) -> Result<(), std::io::Error> { 
+fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result<(), std::io::Error> { 
     //! Validate and install packages.
     let query = Query::from(match validate_pkgs(pkgs.into_iter()) {
         Some(pkgs) => pkgs,

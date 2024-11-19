@@ -56,7 +56,7 @@ impl Query{
     }
     pub fn query_charon(search_term: &str) -> Option<QueryResult> {
         //! Check if search term is contained inside of index.charon.
-        let path = dirs::get_dir(dirs::MythosDir::Data, "charon/index.charon")?;
+        let path = dirs::get_path(dirs::MythosDir::Data, "charon/index.charon")?;
         let res = match fs::read_to_string(path) {
             Ok(res) => res,
             Err(msg) => {

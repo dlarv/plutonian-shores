@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mythos-core = { version = "0.1.0", path = "../../mythos-core" }
+mythos-core = { version = "2.0.0", path = "../../mythos-core" }
 clap = "4.4.6"
 derive = "1.0.0"
 duct = "0.13.6"

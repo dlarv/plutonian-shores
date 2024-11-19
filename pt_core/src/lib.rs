@@ -20,7 +20,7 @@ pub fn xbps_args_to_string(xbps_args: &Vec<String>) -> String {
         acc + x.trim_start_matches("-")
     });
 }
-pub fn validate_pkgs<'a, T>(search_terms: T) -> Option<Vec<QueryResult>>  where T: Iterator<Item = &'a str>{
+pub fn validate_pkgs<T>(search_terms: T) -> Option<Vec<QueryResult>>  where T: Iterator<Item = String>{
     /*!
      * Iterate over pkgs, searching for each one in repo. 
      * Allows user to select from results or remove it.

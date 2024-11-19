@@ -8,11 +8,11 @@ use pt_core::{validate_pkgs, Query, QueryResult};
 fn main() {
     let _ = set_id("LETHE");
     let args = clean_cli_args();
-    let mut pkgs: Vec<&str> = Vec::new();
+    let mut pkgs: Vec<String> = Vec::new();
     let mut do_dry_run = false;
 
     // Parse opts.
-    for arg in &args {
+    for arg in args {
         if arg == "-h" || arg == "--help" {
             println!("Wrapper util for xbps-remove -Ryo");
             println!("lethe [opts] pkgs");
@@ -24,7 +24,7 @@ fn main() {
             do_dry_run = true;
         }
         else if !arg.starts_with("-") {
-            pkgs.push(&arg);
+            pkgs.push(arg);
         } else {
             printerror!("Unknown opt: '{arg}'");
             return;
