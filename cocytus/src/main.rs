@@ -37,6 +37,11 @@ fn main() {
         }
     }
 
+    if pkgs.len() == 0 {
+        println!("Wrapper for xbps-query -Rs (xrs). Allows the user to select from the results and pipe them to either styx or lethe.\ncocytus -h|--help\t\tPrint this menu\ncocytus [pkgs]\t\tQuery [pkgs].");
+        return;
+    }
+
 
     let mut validated_pkgs = Query::from(match validate_pkgs(pkgs.into_iter()) {
         Some(pkgs) => pkgs,
@@ -45,6 +50,11 @@ fn main() {
             return;
         }
     });
+
+    if validated_pkgs.len() == 0 {
+        printinfo!("All packages were removed. Exiting...");
+        return;
+    }
 
     printinfo!("\nSelected packages:\n{}\n", validated_pkgs.get_short_list());
 
