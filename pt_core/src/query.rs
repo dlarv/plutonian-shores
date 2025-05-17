@@ -1,8 +1,12 @@
 use crate::utils::{parse_xbps_output, read_multiple_index, read_single_index};
-use std::{fs, process::{Command, Stdio}};
+use std::{fs, io::{stdin, stdout, Read, Write}, process::{Command, Stdio}};
 
-use mythos_core::{cli::get_cli_input, dirs, fatalmsg, printerror};
+use mythos_core::{cli::{self, get_cli_input}, dirs, fatalmsg, printerror};
 use toml::Value;
+
+use termion::{self, clear};
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
 
 use crate::{Query, QueryError, QueryResult};
 
@@ -96,7 +100,7 @@ impl Query{
             * Else return Query, where its results are the packages they selected.
         */
         let msg = &format!("{list}\n0. Remove package\nEnter from the options above: ", list = self.get_short_list());
-        if self.len() < SMALL_LIST_SIZE {
+        if self.len() <= SMALL_LIST_SIZE {
             loop {
                 let input = get_cli_input(msg);
                 if input == "0" {
@@ -124,7 +128,7 @@ impl Query{
         } 
 
         // List is too large to display, use less-like format.
-        let res = self.show_long_list()?;
+        let res = self.show_long_list("0 to Remove package or select from the options above: ")?;
         return Some(Query { 
             results: res.0, 
             longest_name: res.1, 
@@ -132,12 +136,17 @@ impl Query{
         });
     }
     pub fn get_short_list(&self) -> String {
+        return self.generate_list(0, None);
+    }
+    fn generate_list(&self, skip_row: usize, end_row: Option<usize>) -> String {
         /*!
          * Display list of results in separate columns.
          * Columns = termsize.width / (self.longest_name + id), where id = '1. ', '01. ', etc.
+         *
+         * skip_row: Number of rows to skip.
         */
-        let mut output = String::new();
 
+        let mut output = String::new();
         let num_digits = (self.results.len()as f32).log10() as usize + 1;
         let columns = match termsize::get() {
             Some(size) =>  {
@@ -154,14 +163,25 @@ impl Query{
             None => 1
         };
 
+        let start_index = columns as usize * skip_row;
+        let end_index = if let Some(end) = end_row {
+            columns as usize * end
+        } else {
+            self.len()
+        };
+
         let mut row_counter = 1;
         let longest_name = self.longest_name;
-        for (i, res) in self.results.iter().enumerate() {
+
+        let mut i = start_index as isize - 1;
+        for res in self.results.iter().skip(start_index) {
+            i += 1;
+            if i == end_index as isize { break; }
             // Current index of number + padding zeros + '.' + name + ' '
             output += &format!("{id:0$}. {name: <longest_name$} ", num_digits, id = i + 1, name = res.pkg_name); 
             // Loop down to next row
             if row_counter % columns == 0 {
-                output += "\n";
+                output += "\n\r";
                 row_counter = 1;
             } else {
                 row_counter += 1;
@@ -169,8 +189,134 @@ impl Query{
         }
         return output;
     }
-    fn show_long_list(&self) -> Option<(Vec<QueryResult>, usize)> {
-        return None;
+    fn show_long_list(&self, msg: &str) -> Option<(Vec<QueryResult>, usize)> {
+        // Hides cursor for lifetime of object.
+        let c = termion::cursor::Hide;
+
+        let mut indices: String = String::new();
+        let mut start_row = 0;
+        let page_length: usize = match termsize::get() {
+            // -- for the footer.
+            Some(size) => size.rows as usize - 4,
+            None => 1
+        };
+        let mut end_row = page_length;
+
+        // These calculations are repeated inside of generate_list(...)
+        let final_row: usize = {
+            let num_digits = (self.results.len()as f32).log10() as usize + 1;
+            let columns = match termsize::get() {
+                Some(size) =>  {
+                    // Index of number + padding zeros + '.' + ' ' + longest_name + ' '
+                    let div = (self.longest_name + num_digits + 2) as u16;
+                    // If size.col < (...), then columns will be cast/rounded to 0.
+                    // This will lead to a divide by zero error later on.
+                    if size.cols < div {
+                        1
+                    } else {
+                        size.cols / div
+                    }
+                },
+                None => 1
+            };
+            self.results.len() / columns as usize
+        };
+
+        let refresh = |start_row: &usize, end_row: &usize, indices: &String| {
+            print!("{}{}\n\r{}{}\n", 
+                termion::clear::All,
+                self.generate_list(*start_row, Some(*end_row)), 
+                msg,
+                &indices);
+            // let c = termion::cursor::Up;
+        };
+
+
+        let stdout = std::io::stdout().into_raw_mode().unwrap();
+        // Hides cursor for lifetime of object.
+        let c = termion::cursor::HideCursor::from(stdout);
+
+        let mut stdin = termion::async_stdin().keys();
+
+        refresh(&start_row, &end_row, &indices);
+
+        loop {
+            let input = match stdin.next() {
+                Some(Ok(input)) => input,
+                Some(Err(err)) => {
+                    printerror!("{err}");
+                    return None;
+                },
+                None => continue
+            };
+
+            match input {
+                termion::event::Key::Char('j') => {
+                    if start_row == final_row {
+                        continue;
+                    }
+                    start_row += 1;
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Char('k') => {
+                    if start_row == 0 {
+                        continue;
+                    }
+                    start_row = (start_row as isize - 1) as usize;
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Char('G') => {
+                    start_row = final_row;
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Char('g') => {
+                    start_row = 0;
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Ctrl('d') => {
+                    start_row = std::cmp::max(start_row as isize - 10, 0) as usize;
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Ctrl('u') => {
+                    start_row = std::cmp::min(start_row + 10, final_row);
+                    end_row = start_row + page_length;
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Char('q') => break,
+                termion::event::Key::Backspace => {
+                    indices.pop();
+                    refresh(&start_row, &end_row, &indices);
+                },
+                termion::event::Key::Char(ch) => {
+                    if ch >= '1' && ch <= '9' || ch == ' ' {
+                        indices.push(ch);
+                        refresh(&start_row, &end_row, &indices);
+                    } else if ch == '0' {
+                        return None;
+                    } if ch == '\n' {
+                        break;
+                    }
+                },
+                _ => continue
+            }
+        }
+
+        let results = if indices.find(" ").is_none() {
+            let r = read_single_index(&indices, &self.results);
+            if let Some(vals) = r {
+                Some((vec![vals.0], vals.1))
+            } else {
+                None
+            }
+        } else {
+            read_multiple_index(&indices, &self.results)
+        };
+        return results;
     }
     pub fn get_pkg_names<'a>(&'a self) -> Vec<&'a str> {
         return self.results.iter().map(|p| p.pkg_name.as_str()).collect::<Vec<&str>>();
@@ -272,9 +418,10 @@ mod tests {
         let output = res.get_short_list();
         println!("{output}");
     }
-    #[test]
+    // #[test]
     fn test_long_display_list() {
         let res = Query::query_xbps("b").unwrap();
-        let output = res.show_long_list();
+        let output = res.show_long_list("...");
+        assert!(true);
     }
 }

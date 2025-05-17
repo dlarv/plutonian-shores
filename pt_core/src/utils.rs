@@ -125,6 +125,11 @@ pub fn read_multiple_index(input: &str, query: &Vec<QueryResult>) -> Option<(Vec
     for num in input.split(" ") {
         match read_single_index(num, query) {
             Some((pkg, len)) => { 
+                // Don't include duplicates.
+                if pkgs.contains(&pkg) {
+                    continue;
+                }
+
                 pkgs.push(pkg);
                 longest_name = if len > longest_name {
                     len

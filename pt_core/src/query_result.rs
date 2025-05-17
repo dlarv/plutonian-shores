@@ -37,3 +37,9 @@ impl QueryResult {
         return output;
     }
 }
+
+impl PartialEq for QueryResult {
+    fn eq(&self, other: &Self) -> bool {
+        return self.pkg_name == other.pkg_name;
+    }
+}

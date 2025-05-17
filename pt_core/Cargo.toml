@@ -15,5 +15,6 @@ serde = "1.0.189"
 serde_derive = "1.0.189"
 toml = "0.8.13"
 termsize = "0.1.6"
+termion = "4.0.5"
 
 
