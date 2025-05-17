@@ -63,7 +63,9 @@ fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result
 
     // Double check before installing, unless user used -y.
     if !assume_yes {
-        let msg =  "The following packages will be installed:\n".to_owned() + &pkg_names.join("\n");
+        let msg =  "The following packages will be installed:\n".to_owned() 
+            + &pkg_names.join("\n")
+            + "\n\nWould you like to continue? ";
         let p = get_user_permission(assume_yes, &msg);
         if !p { 
             println!("Cancelling installation...");
