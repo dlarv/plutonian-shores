@@ -15,13 +15,14 @@ fn main() {
     let mut pkgs: Vec<String> = Vec::new();
     let mut starting_state = StartState::Install;
     let mut do_dry_run = false;
+    let mut assume_yes = false;
 
     for arg in args {
         if arg == "-h" || arg == "--help" {
             println!("Wrapper util for xbps-install");
             println!("styx [opts] packages");
             println!("opts:");
-            println!("-h | --help\t\tPrint this menu.\n-u | --update\t\tRun a system update. Equiv to xbps-install -Syu.\n-x | --xbps-update\t\tUpdate xbps. Contains an implicit '-u'.\n-n | --dryrun\t\tRun command w/o making changes to system.");
+            println!("-h | --help\t\tPrint this menu.\n-u | --update\t\tRun a system update. Equiv to xbps-install -Syu.\n-x | --xbps-update\t\tUpdate xbps. Contains an implicit '-u'.\n-n | --dryrun\t\tRun command w/o making changes to system.\n-y | --assume-yes\t\tAssume yes to all questions.");
             return;
         } 
         if arg == "-u" || arg == "--update" {
@@ -30,6 +31,8 @@ fn main() {
             starting_state = StartState::XbpsUpdate;
         } else if arg == "-n" || arg == "--dryrun" { 
             do_dry_run = true;
+        } else if arg == "-y" || arg == "--assume-yes" {
+            assume_yes = true;
         } else if arg.starts_with("-") {
             printerror!("Unknown arg: {arg}");
         } else {
@@ -38,11 +41,11 @@ fn main() {
     }
 
     let _ = match starting_state {
-        StartState::Install => install_pkgs(pkgs, do_dry_run, false),
-        StartState::SysUpdate => sys_update(false),
+        StartState::Install => install_pkgs(pkgs, do_dry_run, assume_yes),
+        StartState::SysUpdate => sys_update(assume_yes),
         StartState::XbpsUpdate => {
-            match xbps_update() {
-                Ok(_) => sys_update(false),
+            match xbps_update(assume_yes) {
+                Ok(_) => sys_update(assume_yes),
                 Err(err) => Err(err),
             }
         },
@@ -66,10 +69,8 @@ fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result
         let msg =  "The following packages will be installed:\n".to_owned() 
             + &pkg_names.join("\n")
             + "\n\nWould you like to continue? ";
-        let p = get_user_permission(assume_yes, &msg);
-        if !p { 
-            println!("Cancelling installation...");
-            return Ok(()); 
+        if !get_user_permission(assume_yes,  &msg) {
+            return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Cancelling installation..."));
         }
     }
 
@@ -103,16 +104,20 @@ fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result
                     break;
             } 
             // This is here just in case.
-            if line.contains("The 'xbps' package must be updated") 
-                && get_user_permission(assume_yes, "xbps package needs to be updated."){
-                    xbps_update()?;
-                    break;
+            if line.contains("The 'xbps' package must be updated") {
+                xbps_update(assume_yes)?;
+                break;
             }
         }
         
     }
 }
 fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
+    if !assume_yes {
+        if !get_user_permission(assume_yes,  "Running a system update. Would you like to continue?") {
+            return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Cancelling update..."));
+        }
+    }
     let cmd = cmd("xbps-install", vec!["-Syu"])
         .stderr_to_stdout()
         .unchecked();
@@ -126,15 +131,17 @@ fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
                 None => return Ok(())
             };
             println!("{line}");
-            if line.contains("The 'xbps' package must be updated") 
-                && get_user_permission(assume_yes, "xbps package needs to be updated."){
-                    xbps_update()?;
-                    break;
+            if line.contains("The 'xbps' package must be updated") {
+                xbps_update(assume_yes)?;
+                break;
             }
         }
     }
 }
-fn xbps_update()-> Result<(), std::io::Error> {
+fn xbps_update(assume_yes: bool)-> Result<(), std::io::Error> {
+    if !get_user_permission(assume_yes,  "xbps package needs to be updated. Would you like to continue?") {
+        return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Cancelling xbps update..."));
+    }
     cmd("xbps-install", vec!["-Syu", "xbps"]).unchecked().run()?;
     return Ok(());
 }
