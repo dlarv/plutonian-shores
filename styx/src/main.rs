@@ -42,10 +42,10 @@ fn main() {
 
     let _ = match starting_state {
         StartState::Install => install_pkgs(pkgs, do_dry_run, assume_yes),
-        StartState::SysUpdate => sys_update(assume_yes),
+        StartState::SysUpdate => sys_update(assume_yes, do_dry_run),
         StartState::XbpsUpdate => {
-            match xbps_update(assume_yes) {
-                Ok(_) => sys_update(assume_yes),
+            match xbps_update(assume_yes, do_dry_run) {
+                Ok(_) => sys_update(assume_yes, do_dry_run),
                 Err(err) => Err(err),
             }
         },
@@ -100,25 +100,29 @@ fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result
 
             if line.contains("shlibs") 
                 && get_user_permission(assume_yes, "System needs to be updated.") {
-                    sys_update(assume_yes)?;
+                    sys_update(assume_yes, do_dry_run)?;
                     break;
             } 
             // This is here just in case.
             if line.contains("The 'xbps' package must be updated") {
-                xbps_update(assume_yes)?;
+                xbps_update(assume_yes, do_dry_run)?;
                 break;
             }
         }
         
     }
 }
-fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
+fn sys_update(assume_yes: bool, do_dry_run: bool) -> Result<(), std::io::Error>{
     if !assume_yes {
         if !get_user_permission(assume_yes,  "Running a system update. Would you like to continue?") {
             return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Cancelling update..."));
         }
     }
-    let cmd = cmd("xbps-install", vec!["-Syu"])
+    let mut args = vec!["-Syu"];
+    if do_dry_run {
+        args.push("-n");
+    }
+    let cmd = cmd("xbps-install", args)
         .stderr_to_stdout()
         .unchecked();
     loop {
@@ -132,17 +136,24 @@ fn sys_update(assume_yes: bool) -> Result<(), std::io::Error>{
             };
             println!("{line}");
             if line.contains("The 'xbps' package must be updated") {
-                xbps_update(assume_yes)?;
+                xbps_update(assume_yes, do_dry_run)?;
                 break;
             }
         }
     }
 }
-fn xbps_update(assume_yes: bool)-> Result<(), std::io::Error> {
+fn xbps_update(assume_yes: bool, do_dry_run: bool)-> Result<(), std::io::Error> {
     if !get_user_permission(assume_yes,  "xbps package needs to be updated. Would you like to continue?") {
         return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Cancelling xbps update..."));
     }
-    cmd("xbps-install", vec!["-Syu", "xbps"]).unchecked().run()?;
+    let mut args = vec!["-Syu"];
+    if do_dry_run {
+        args.push("-n");
+    }
+    args.push("xbps");
+
+    cmd("xbps-install", args).unchecked().run()?;
+
     return Ok(());
 }
 
