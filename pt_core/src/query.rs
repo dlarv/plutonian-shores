@@ -8,6 +8,7 @@ use crate::{Query, QueryError, QueryResult};
 
 // Minimum score package must get using fuzzy find to be included in results.
 const THRESHOLD: f32 = 0.3;
+const SMALL_LIST_SIZE: usize = 50;
 
 impl Query{
     pub fn query(search_term: &str) -> Result<Query, QueryError> {
@@ -95,31 +96,40 @@ impl Query{
             * Else return Query, where its results are the packages they selected.
         */
         let msg = &format!("{list}\n0. Remove package\nEnter from the options above: ", list = self.get_short_list());
-        loop {
-            let input = get_cli_input(msg);
-            if input == "0" {
-                return None;
-            }
-            let results = if input.find(" ").is_none() {
-                let r = read_single_index(&input, &self.results);
-                if let Some(vals) = r {
-                    Some((vec![vals.0], vals.1))
+        if self.len() < SMALL_LIST_SIZE {
+            loop {
+                let input = get_cli_input(msg);
+                if input == "0" {
+                    return None;
+                }
+                let results = if input.find(" ").is_none() {
+                    let r = read_single_index(&input, &self.results);
+                    if let Some(vals) = r {
+                        Some((vec![vals.0], vals.1))
+                    } else {
+                        None
+                    }
                 } else {
-                    None
-                }
-            }
-            else {
-                read_multiple_index(&input, &self.results)
-            };
+                    read_multiple_index(&input, &self.results)
+                };
 
-            return match results {
-                Some(res) => Some(Query { results: res.0, longest_name: res.1, pkg_name: format!("{} (Modified)", self.pkg_name) }),
-                None => {
-                    eprintln!("Please enter an option above");
-                    continue;
-                }
-            };
-        }
+                return match results {
+                    Some(res) => Some(Query { results: res.0, longest_name: res.1, pkg_name: format!("{} (Modified)", self.pkg_name) }),
+                    None => {
+                        eprintln!("Please enter an option above");
+                        continue;
+                    }
+                };
+            }  
+        } 
+
+        // List is too large to display, use less-like format.
+        let res = self.show_long_list()?;
+        return Some(Query { 
+            results: res.0, 
+            longest_name: res.1, 
+            pkg_name: format!("{} (Modified)", self.pkg_name) 
+        });
     }
     pub fn get_short_list(&self) -> String {
         /*!
@@ -128,13 +138,13 @@ impl Query{
         */
         let mut output = String::new();
 
-        let num_digits = self.results.len() / 10;
+        let num_digits = (self.results.len()as f32).log10() as usize + 1;
         let columns = match termsize::get() {
-            // Index of number + padding zeros + '.' + ' ' + longest_name + ' '
             Some(size) =>  {
+                // Index of number + padding zeros + '.' + ' ' + longest_name + ' '
+                let div = (self.longest_name + num_digits + 2) as u16;
                 // If size.col < (...), then columns will be cast/rounded to 0.
                 // This will lead to a divide by zero error later on.
-                let div = (self.longest_name + num_digits + 2) as u16;
                 if size.cols < div {
                     1
                 } else {
@@ -158,6 +168,9 @@ impl Query{
             }
         }
         return output;
+    }
+    fn show_long_list(&self) -> Option<(Vec<QueryResult>, usize)> {
+        return None;
     }
     pub fn get_pkg_names<'a>(&'a self) -> Vec<&'a str> {
         return self.results.iter().map(|p| p.pkg_name.as_str()).collect::<Vec<&str>>();
@@ -258,5 +271,10 @@ mod tests {
         let res = Query::query_xbps("bl").unwrap();
         let output = res.get_short_list();
         println!("{output}");
+    }
+    #[test]
+    fn test_long_display_list() {
+        let res = Query::query_xbps("b").unwrap();
+        let output = res.show_long_list();
     }
 }
