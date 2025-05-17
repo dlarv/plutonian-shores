@@ -59,8 +59,19 @@ fn install_pkgs(pkgs: Vec<String>, do_dry_run: bool, assume_yes: bool) -> Result
         },
     });
 
-    // Build args for command.
     let pkg_names = query.get_pkg_names();
+
+    // Double check before installing, unless user used -y.
+    if !assume_yes {
+        let msg =  "The following packages will be installed:\n".to_owned() + &pkg_names.join("\n");
+        let p = get_user_permission(assume_yes, &msg);
+        if !p { 
+            println!("Cancelling installation...");
+            return Ok(()); 
+        }
+    }
+
+    // Build args for command.
     let mut args = vec!["-Sy"];
     if do_dry_run {
         args.push("-n".into());
