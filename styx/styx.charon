@@ -1,4 +1,4 @@
-info = { version = "0.2.0", description = "Wrapper for xbps-install", source = "." }
+info = { version = "0.3.0", description = "Wrapper for xbps-install", source = "." }
 bin = [
 	{ target = "../target/debug/styx", alias = "styx", perms = 0x755 },
 ]
