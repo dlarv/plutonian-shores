@@ -23,9 +23,10 @@ def update_cargo(util: str):
         lines = "\n".join(lines) 
 
         stream.seek(0)
+        stream.truncate()
         stream.write(lines)
 
-        subprocess.run(["git", "add", f"{util}/Cargo.toml"], capture_output=True)
+        subprocess.run(["git", "add", f"{util}/Cargo.toml"])
 
 
 def update_charon(util: str):
@@ -46,10 +47,11 @@ def update_charon(util: str):
 
         # Write to file.
         stream.seek(0)
+        stream.truncate()
         stream.write(lines)
 
         # Add updated file to commit.
-        subprocess.run(["git", "add", f"{util}/{util}.charon"], capture_output=True)
+        subprocess.run(["git", "add", f"{util}/{util}.charon"])
 
 
 def main():
